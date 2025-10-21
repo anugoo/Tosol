@@ -2,9 +2,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import Header from "@/components/Header"; 
+import Footer from "@/components/Footer";
 
 const Signup = () => {
   return (
+    <>
+    <Header/>
     <section className="min-h-screen flex items-center justify-center bg-gradient-to-r from-background via-accent to-background">
       <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md space-y-6">
         <h2 className="text-3xl font-bold text-center text-foreground">Бүртгүүлэх</h2>
@@ -50,6 +54,8 @@ const Signup = () => {
         </p>
       </div>
     </section>
+    <Footer/>
+    </>
   );
 };
 

@@ -13,12 +13,19 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <button 
-              onClick={() => navigate("/")}
-              className="text-2xl font-bold text-primary hover:scale-105 transition-transform duration-300"
-            >
-              🏠 Гэрэ
-            </button>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center space-x-2 text-2xl font-bold text-primary hover:scale-105 transition-transform duration-300"
+          >
+            {/* Favicon / Logo image */}
+            <img
+              src="/favicon.ico"  // ← энэ замыг favicon эсвэл өөрийн логогоор солино
+              alt="Logo"
+              className="w-8 h-8"
+            />
+            <span>Гэрэ</span>
+          </button>
+
           </div>
 
           {/* Navigation */}

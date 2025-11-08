@@ -9,6 +9,7 @@ import PostProperty from "./pages/PostProperty";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
+import Verified from "./pages/Verified";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/post" element={<PostProperty />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verified" element={<Verified />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

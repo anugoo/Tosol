@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Upload, X, Plus, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,42 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+interface Turul {
+  tid: number;
+  tname: string;
+  temoji?: string;
+}
+
+interface Tuluv {
+  tid: number;
+  tname: string;
+}
+
 const PostProperty = () => {
   const [images, setImages] = useState<string[]>([]);
-  
+  const [turul, setTurul] = useState<Turul[]>([]);
+  const [tuluv, setTuluv] = useState<Tuluv[]>([]);
+  const [selectedTurul, setSelectedTurul] = useState<string | undefined>();
+  const [selectedTuluv, setSelectedTuluv] = useState<string | undefined>();
+
+  // API-с өгөгдөл татах
+  useEffect(() => {
+    fetch("http://localhost:8000/user/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "getturul" }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.resultCode === 6003) {
+          setTurul(data.data.turul || []);
+          setTuluv(data.data.tuluv || []);
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  // Зураг оруулах функц
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     files.forEach(file => {
@@ -32,7 +65,7 @@ const PostProperty = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
@@ -57,20 +90,21 @@ const PostProperty = () => {
                     <Input 
                       id="title"
                       placeholder="Жишээ: 3 өрөө орон сууц Сүхбаатар дүүрэгт"
-                      className="search-input"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="type">Төлөв *</Label>
-                    <Select>
-                      <SelectTrigger className="search-input">
+                    <Select value={selectedTuluv} onValueChange={setSelectedTuluv}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Сонгоно уу" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sale">Худалдах</SelectItem>
-                        <SelectItem value="rent">Түрээслэх</SelectItem>
-                        <SelectItem value="rent">Захиалгат</SelectItem>
+                        {tuluv.map((t) => (
+                          <SelectItem key={t.tid} value={t.tid.toString()}>
+                            {t.tname}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -79,28 +113,23 @@ const PostProperty = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="property-type">Үл хөдлөхийн төрөл *</Label>
-                    <Select>
-                      <SelectTrigger className="search-input">
+                    <Select value={selectedTurul} onValueChange={setSelectedTurul}>
+                      <SelectTrigger>
                         <SelectValue placeholder="Төрөл сонгох" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="apartment">Орон сууц</SelectItem>
-                        <SelectItem value="house">Байшин</SelectItem>
-                        <SelectItem value="villa">Вилла</SelectItem>
-                        <SelectItem value="office">Оффис</SelectItem>
-                        <SelectItem value="land">Газар</SelectItem>
+                        {turul.map((t) => (
+                          <SelectItem key={t.tid} value={t.tid.toString()}>
+                            {t.temoji} {t.tname}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="price">Үнэ (₮) *</Label>
-                    <Input 
-                      id="price"
-                      type="number"
-                      placeholder="450000000"
-                      className="search-input"
-                    />
+                    <Input id="price" type="number" placeholder="450000000" />
                   </div>
                 </div>
               </CardContent>
@@ -119,7 +148,7 @@ const PostProperty = () => {
                   <div className="space-y-2">
                     <Label htmlFor="city">Хот/Аймаг *</Label>
                     <Select>
-                      <SelectTrigger className="search-input">
+                      <SelectTrigger>
                         <SelectValue placeholder="Хот сонгох" />
                       </SelectTrigger>
                       <SelectContent>
@@ -129,11 +158,10 @@ const PostProperty = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="district">Дүүрэг/Сум *</Label>
                     <Select>
-                      <SelectTrigger className="search-input">
+                      <SelectTrigger>
                         <SelectValue placeholder="Дүүрэг сонгох" />
                       </SelectTrigger>
                       <SelectContent>
@@ -146,24 +174,15 @@ const PostProperty = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="khoroo">Хороо</Label>
-                    <Input 
-                      id="khoroo"
-                      placeholder="1-р хороо"
-                      className="search-input"
-                    />
+                    <Input id="khoroo" placeholder="1-р хороо" />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Дэлгэрэнгүй хаяг</Label>
-                  <Input 
-                    id="address"
-                    placeholder="Гудамж, байрны дугаар"
-                    className="search-input"
-                  />
+                  <Input id="address" placeholder="Гудамж, байрны дугаар" />
                 </div>
               </CardContent>
             </Card>
@@ -178,7 +197,7 @@ const PostProperty = () => {
                   <div className="space-y-2">
                     <Label htmlFor="rooms">Өрөөний тоо</Label>
                     <Select>
-                      <SelectTrigger className="search-input">
+                      <SelectTrigger>
                         <SelectValue placeholder="Тоо" />
                       </SelectTrigger>
                       <SelectContent>
@@ -190,11 +209,10 @@ const PostProperty = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="bathrooms">Угаалгын өрөө</Label>
                     <Select>
-                      <SelectTrigger className="search-input">
+                      <SelectTrigger>
                         <SelectValue placeholder="Тоо" />
                       </SelectTrigger>
                       <SelectContent>
@@ -205,24 +223,13 @@ const PostProperty = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="area">Талбай (м²) *</Label>
-                    <Input 
-                      id="area"
-                      type="number"
-                      placeholder="85"
-                      className="search-input"
-                    />
+                    <Input id="area" type="number" placeholder="85" />
                   </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="floor">Давхар</Label>
-                    <Input 
-                      id="floor"
-                      placeholder="5/12"
-                      className="search-input"
-                    />
+                    <Input id="floor" placeholder="5/12" />
                   </div>
                 </div>
               </CardContent>
@@ -236,10 +243,10 @@ const PostProperty = () => {
               <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="description">Дэлгэрэнгүй тайлбар</Label>
-                  <Textarea 
+                  <Textarea
                     id="description"
                     placeholder="Үл хөдлөх хөрөнгийн онцлог, давуу тал, орчин тойронд байгаа үйлчилгээний тухай дэлгэрэнгүй бичнэ үү..."
-                    className="search-input min-h-32"
+                    className="min-h-32"
                   />
                 </div>
               </CardContent>
@@ -279,8 +286,8 @@ const PostProperty = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {images.map((image, index) => (
                         <div key={index} className="relative group">
-                          <img 
-                            src={image} 
+                          <img
+                            src={image}
                             alt={`Upload ${index + 1}`}
                             className="w-full h-24 object-cover rounded-lg"
                           />
@@ -311,7 +318,7 @@ const PostProperty = () => {
           </form>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

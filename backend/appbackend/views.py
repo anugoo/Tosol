@@ -8,37 +8,35 @@ from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from backend.settings import sendResponse ,disconnectDB, connectDB, resultMessages,generateStr
 
-# Odoogiin tsagiig duuddag service
-def dt_gettime(request):
-    jsons = json.loads(request.body) # request body-g dictionary bolgon avch baina
-    action = jsons["action"] #jsons-s action-g salgaj avch baina
-    
-    # url: http://localhost:8000/user/
-    # Method: POST
-    # Body: raw JSON
-    
-    # request body:
-    # {"action":"gettime"}
-    
-    # response:
-    # {
-    #     "resultCode": 200,
-    #     "resultMessage": "Success",
-    #     "data": [
-    #         {
-    #             "time": "2024/11/06, 07:53:58"
-    #         }
-    #     ],
-    #     "size": 1,
-    #     "action": "gettime",
-    #     "curdate": "2024/11/06 07:53:58"
-    # }
-    
-    respdata = [{'time':datetime.now().strftime("%Y/%m/%d, %H:%M:%S")}]  # response-n data-g beldej baina. list turultei baih
-    resp = sendResponse(request, 200, respdata, action)
-    # response beldej baina. 6 keytei.
-    return resp
-# dt_gettime
+def dt_getturul(request):
+    jsons = json.loads(request.body)
+    action = jsons.get('action')
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+        cursor.execute('''SELECT * FROM t_turul''')
+        columns = cursor.description # 
+            # print(columns, "tuples")post
+        turul = [{columns[index][0]:column for index, 
+            column in enumerate(value)} for value in cursor.fetchall()]
+            
+        cursor.execute('''SELECT * FROM t_tuluv''')
+        columns = cursor.description # 
+            # print(columns, "tuples")post
+        tuluv = [{columns[index][0]:column for index, 
+            column in enumerate(value)} for value in cursor.fetchall()]
+
+
+        respRow = {"turul" :turul, "tuluv":tuluv}
+        resp = sendResponse(request, 6003, respRow, action)
+    except Exception as e:
+        respdata = [{"error": str(e)}]
+        resp = sendResponse(request, 6004, respdata, action)
+    finally:
+        cursor.close()
+        disconnectDB(myConn)
+    return JsonResponse(resp)
 
 #login service
 def dt_login(request):
@@ -524,9 +522,8 @@ def checkService(request): # hamgiin ehend duudagdah request shalgah service
             return JsonResponse(resp)# response bustaaj baina
         
         # request-n action ni gettime
-        if action == "gettime":
-            result = dt_gettime(request)
-            return JsonResponse(result)
+        if action == "getturul":
+            return dt_getturul(request)
         # request-n action ni login bol ajillana
         elif action == "login":
             result = dt_login(request)

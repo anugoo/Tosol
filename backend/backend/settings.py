@@ -164,6 +164,7 @@ resultMessages = {
     1005 : "edituser success",
     1006 : "getuserresume success",
     1007 : "getalluser success",
+    3000 : "key dutuu",
     3001 : "ACTION BURUU",
     3002 : "METHOD BURUU",
     3003 : "JSON BURUU",
@@ -225,6 +226,17 @@ resultMessages = {
     6006 : "createsystem service dotood aldaa ",
     6007 : "deletesystem amjilttai ",
     6008 : "deletesystem service dotood aldaa ",
+    7005 : "zar amjilttai tatlaa ",
+    7006 : "zar tatah service aldaa garlaa ",
+    7007 : "zar nemeh amjilttai tatlaa ",
+    7008 : "zar nemeh service aldaa garlaa ",
+    7009 : "zar zasah huselt amjilttai ",
+    7010 : "zar zasah service aldaa garlaa ",
+    7011 : "zar ustgah huselt amjilttai ",
+    7012 : "zar ustgah service aldaa garlaa ",
+    7013 : "zar oldsongui",
+
+
 
 }
 # resultMessage

@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/login";
 import Signup from "./pages/signup";
 import Verified from "./pages/Verified";
+import EditProperty from "./pages/PostPropertyEdit";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verified" element={<Verified />} />
+          <Route path="/property/edit/:id" element={<EditProperty />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

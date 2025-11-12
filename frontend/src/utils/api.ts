@@ -1,7 +1,7 @@
 import md5 from "md5";
 
 /** 🔹 Ерөнхий API хариуны интерфэйс */
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   resultCode?: number;
   resultMessage?: string;
   data?: T;
@@ -11,14 +11,21 @@ interface ApiResponse<T> {
 }
 
 /** 🔹 Header төрөл */
-interface RequestHeaders extends Record<string, string> {
-  "Content-Type"?: any;
-  Authorization?: any;
+export interface RequestHeaders extends Record<string, string> {
+  "Content-Type"?: string;
+  Authorization?: string;
 }
 
 /** 
+ * 🔹 ASCII тэмдэгтээр шалгах функц
+ */
+const sanitizeHeaderValue = (value: string): string => {
+  // Unicode орсон бол устгана
+  return value.replace(/[^\x00-\x7F]/g, "");
+};
+
+/** 
  * 🔹 API хүсэлт илгээх ерөнхий функц
- * fetch ашиглаж, алдаа болон JSON parse-г найдвартай барина.
  */
 export const sendRequest = async <T>(
   url: string,
@@ -30,23 +37,36 @@ export const sendRequest = async <T>(
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
+    // 🧩 Custom header-уудыг шалгах (ASCII бишийг устгах)
+    const sanitizedCustomHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(customHeaders)) {
+      if (typeof value === "string") {
+        sanitizedCustomHeaders[key] = sanitizeHeaderValue(value);
+      }
+    }
+
     const headers: RequestHeaders = {
       "Content-Type": "application/json",
-      ...customHeaders,
+      ...sanitizedCustomHeaders,
     };
 
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${sanitizeHeaderValue(token)}`;
     }
 
     const options: RequestInit = {
       method,
       headers,
       body: body ? JSON.stringify(body) : null,
-      cache: "no-store" as RequestCache,
+      cache: "no-store",
     };
 
-    console.log("📤 [API REQUEST]", { url, method, headers, body });
+    console.log("📤 [API REQUEST]", {
+      url,
+      method,
+      headers,
+      body,
+    });
 
     const response = await fetch(url, options);
 
@@ -58,13 +78,13 @@ export const sendRequest = async <T>(
       );
     }
 
-    // 🔍 Content-Type шалгах (case insensitive)
+    // 🔍 Content-Type шалгах
     const contentType = response.headers.get("content-type")?.toLowerCase() || "";
     const responseText = await response.text();
 
     console.log("📥 [API RESPONSE TEXT]", responseText);
 
-    // ⚠️ Хэрвээ JSON биш мэт боловч JSON parse хийж чадвал parse хийнэ
+    // ⚙️ JSON parse (аюулгүй байдлаар)
     let parsedResponse: ApiResponse<T>;
     try {
       parsedResponse = JSON.parse(responseText);
@@ -74,7 +94,7 @@ export const sendRequest = async <T>(
       );
     }
 
-    // ✅ Хариу JSON бол амжилттай буцаана
+    // ✅ Хариу JSON бол буцаах
     return parsedResponse;
   } catch (error) {
     console.error("❌ [API ERROR]:", error);
@@ -84,10 +104,7 @@ export const sendRequest = async <T>(
         ? error.message
         : "Сервертэй холбогдоход тодорхойгүй алдаа гарлаа.";
 
-    // Хэрэглэгчдэд ойлгомжтой мессеж буцаана
-    throw new Error(
-      `⚠️ Сервертэй холбогдоход алдаа гарлаа: ${errorMessage}`
-    );
+    throw new Error(`⚠️ Сервертэй холбогдоход алдаа гарлаа: ${errorMessage}`);
   }
 };
 

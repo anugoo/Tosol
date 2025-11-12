@@ -1,4 +1,4 @@
-import { Heart, Share2, Bed, Bath, Square } from "lucide-react";
+import { Heart, Share2, Bed, Bath, Square, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -30,6 +30,12 @@ const PropertyCard = ({
   const handleCardClick = () => {
     navigate(`/property/${id}`);
   };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation(); // карт руу очих click-г тасалдуулна
+    navigate(`/property/edit/${id}`);
+  };
+
   return (
     <div className="property-card overflow-hidden group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl rounded-2xl bg-card border border-border/50">
       {/* Image */}
@@ -64,15 +70,11 @@ const PropertyCard = ({
           <h3 className="font-semibold text-lg text-foreground line-clamp-2 mb-1">
             {title}
           </h3>
-          <p className="text-muted-foreground text-sm">
-            {location}
-          </p>
+          <p className="text-muted-foreground text-sm">{location}</p>
         </div>
 
         <div className="mb-3">
-          <span className="text-2xl font-bold text-primary">
-            {price}
-          </span>
+          <span className="text-2xl font-bold text-primary">{price}</span>
         </div>
 
         <div className="flex items-center gap-4 text-muted-foreground text-sm">
@@ -105,10 +107,11 @@ const PropertyCard = ({
           <Button 
             variant="gold"
             size="sm" 
-            className="flex-1 rounded-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="flex-1 rounded-xl flex items-center justify-center gap-1"
+            onClick={handleEdit}
           >
-            Холбоо барих
+            <Edit2 className="h-4 w-4" />
+            Засах/Устгах
           </Button>
         </div>
       </div>

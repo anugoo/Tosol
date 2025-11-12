@@ -9,34 +9,423 @@ from django.views.decorators.csrf import csrf_exempt
 from backend.settings import sendResponse ,disconnectDB, connectDB, resultMessages,generateStr
 
 def dt_getturul(request):
+    try:
+        jsons = json.loads(request.body)
+        action = jsons.get('action')
+    except json.JSONDecodeError:
+        return JsonResponse(sendResponse(request, 6004, [{"error": "Invalid JSON"}], None))
+
+    myConn = connectDB()
+    try:
+        with myConn.cursor() as cursor:
+            # Turul
+            cursor.execute("SELECT * FROM t_turul")
+            columns = [col[0] for col in cursor.description]
+            turul = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            # Tuluv
+            cursor.execute("SELECT * FROM t_tuluv")
+            columns = [col[0] for col in cursor.description]
+            tuluv = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            # Hot
+            cursor.execute("SELECT * FROM t_hot")
+            columns = [col[0] for col in cursor.description]
+            hot = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            # Duureg
+            cursor.execute("SELECT * FROM t_duureg")
+            columns = [col[0] for col in cursor.description]
+            duureg = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+            cursor.execute("SELECT * FROM t_hiits")
+            columns = [col[0] for col in cursor.description]
+            hiits = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        respRow = {"turul": turul, "tuluv": tuluv, "hot": hot, "duureg": duureg,"hiits": hiits }
+        resp = sendResponse(request, 6003, respRow, action)
+
+    except Exception as e:
+        import traceback
+        respdata = [{"error": str(e), "trace": traceback.format_exc()}]
+        resp = sendResponse(request, 6004, respdata, action)
+
+    finally:
+        disconnectDB(myConn)
+
+    return JsonResponse(resp)
+
+# backend/appbackend/views.py
+import json
+
+def dt_getzar(request):
     jsons = json.loads(request.body)
     action = jsons.get('action')
 
     try:
         myConn = connectDB()
         cursor = myConn.cursor()
-        cursor.execute('''SELECT * FROM t_turul''')
-        columns = cursor.description # 
-            # print(columns, "tuples")post
-        turul = [{columns[index][0]:column for index, 
-            column in enumerate(value)} for value in cursor.fetchall()]
-            
-        cursor.execute('''SELECT * FROM t_tuluv''')
-        columns = cursor.description # 
-            # print(columns, "tuples")post
-        tuluv = [{columns[index][0]:column for index, 
-            column in enumerate(value)} for value in cursor.fetchall()]
 
+        query = """
+SELECT 
+    z.zid,
+    z.z_title,
+    t.tname AS type_name,
+    tu.tname AS status_name,
+    z.z_price,
+    h.hname AS hot_name,
+    d.dname AS district_name,
+    z.z_address,
+    z.z_rooms,
+    z.z_bathroom,
+    z.z_balcony,
+    z.z_m2,
+    z.z_floor,
+    hi.h_name AS hiits_name,
+    z.z_description,
+    z.z_isactive,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'zurag_id', tz.zid,
+                'image_path', tz.zurag
+            )
+        ) FILTER (WHERE tz.zid IS NOT NULL),
+        '[]'
+    ) AS images
+FROM t_zar z
 
-        respRow = {"turul" :turul, "tuluv":tuluv}
-        resp = sendResponse(request, 6003, respRow, action)
+INNER JOIN t_turul t ON z.z_type = t.tid
+INNER JOIN t_tuluv tu ON z.z_status = tu.tid
+INNER JOIN t_hot h ON h.hid = z.z_hot
+INNER JOIN t_duureg d ON z.z_duureg = d.did
+INNER JOIN t_hiits hi ON hi.h_id = z.z_hiits
+LEFT JOIN t_zar_zurag tz ON z.zid = tz.zarid
+WHERE z.z_isactive = TRUE
+GROUP BY 
+    z.zid,z.z_title, t.tname, tu.tname, z.z_price,
+    h.hname, d.dname, z.z_address, z.z_rooms, z.z_bathroom, z.z_balcony,
+    z.z_m2, z.z_floor, hi.h_name, z.z_description, z.z_isactive
+ORDER BY z.zid DESC;
+
+        """
+
+        cursor.execute(query)
+        columns = [col[0] for col in cursor.description]
+        zar_list = []
+
+        for row in cursor.fetchall():
+            zar_dict = dict(zip(columns, row))
+            # JSON string → Python list
+            images = zar_dict['images']
+            zar_dict['images'] = json.loads(images) if isinstance(images, str) else images
+            zar_list.append(zar_dict)
+
+        resp = sendResponse(request, 7005, zar_list, action)
+
     except Exception as e:
         respdata = [{"error": str(e)}]
-        resp = sendResponse(request, 6004, respdata, action)
+        resp = sendResponse(request, 7006, respdata, action)
+
     finally:
         cursor.close()
         disconnectDB(myConn)
+
     return JsonResponse(resp)
+
+
+def dt_getzarbyid(request):
+    jsons = json.loads(request.body)
+    action = jsons.get('action')
+    zid = jsons.get('zid')  # UI талаас ирж буй зарын ID
+
+    if not zid:
+        return JsonResponse(sendResponse(request, 7006, [{"error": "zid хоосон байна"}], action))
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+
+        query = f"""
+SELECT
+    z.zid,
+    z.uid,
+    u.uname AS user_email,
+    z.z_title,
+    z.z_type,
+    z.z_status,
+    z.z_hot,
+    z.z_duureg,
+    z.z_hiits,
+    t.tid AS type_id,
+    tu.tid AS status_id,
+    t.tname AS type_name,
+    tu.tname AS status_name,
+    z.z_price,
+    h.hname AS hot_name,
+    h.hid AS hot_id,
+    d.dname AS district_name,
+    d.did AS district_id,
+    z.z_address,
+    z.z_rooms,
+    z.z_bathroom,
+    z.z_balcony,
+    z.z_m2,
+    z.z_floor,
+    hi.h_name AS hiits_name,
+    hi.h_id AS hiits_id,
+    z.z_description,
+    z.z_isactive,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'zurag_id', tz.zid,
+                'image_path',
+                CASE
+                    WHEN tz.zurag LIKE 'data:image%' THEN tz.zurag
+                    ELSE CONCAT('data:image/jpeg;base64,', tz.zurag)
+                END
+            )
+        ) FILTER (WHERE tz.zid IS NOT NULL),
+        '[]'
+    ) AS images
+FROM t_zar z
+INNER JOIN t_user u ON z.uid = u.uid
+INNER JOIN t_turul t ON z.z_type = t.tid
+INNER JOIN t_tuluv tu ON z.z_status = tu.tid
+INNER JOIN t_hot h ON h.hid = z.z_hot
+INNER JOIN t_duureg d ON z.z_duureg = d.did
+INNER JOIN t_hiits hi ON hi.h_id = z.z_hiits
+LEFT JOIN t_zar_zurag tz ON z.zid = tz.zarid
+WHERE z.zid = {zid}
+GROUP BY
+    z.zid, 
+    z.uid, 
+    u.uname, 
+    z.z_title,
+    z.z_type,          -- ЭНД
+    z.z_status,        -- ЭНД
+    z.z_hot,           -- ЭНД
+    z.z_duureg,        -- ЭНД
+    z.z_hiits,         -- ЭНД
+    t.tid, 
+    tu.tid, 
+    t.tname, 
+    tu.tname, 
+    z.z_price,
+    h.hname, 
+    h.hid, 
+    d.dname, 
+    d.did, 
+    z.z_address, 
+    z.z_rooms, 
+    z.z_bathroom, 
+    z.z_balcony,
+    z.z_m2, 
+    z.z_floor, 
+    hi.h_name, 
+    hi.h_id, 
+    z.z_description, 
+    z.z_isactive;
+        """
+
+        cursor.execute(query)
+        columns = [col[0] for col in cursor.description]
+        result = cursor.fetchone()
+
+        if not result:
+            resp = sendResponse(request, 7006, [{"error": "Тухайн ID-тэй зар олдсонгүй"}], action)
+        else:
+            zar_dict = dict(zip(columns, result))
+            images = zar_dict["images"]
+            zar_dict["images"] = json.loads(images) if isinstance(images, str) else images
+            resp = sendResponse(request, 7005, [zar_dict], action)
+
+    except Exception as e:
+        respdata = [{"error": str(e)}]
+        resp = sendResponse(request, 7006, respdata, action)
+
+    finally:
+        cursor.close()
+        disconnectDB(myConn)
+
+    return JsonResponse(resp)
+
+def dt_addzar(request):
+    jsons = json.loads(request.body)
+    action = jsons.get('action')
+
+    uid = jsons.get('uid')
+    z_title = jsons.get('z_title')
+    z_type = jsons.get('z_type')
+    z_status = jsons.get('z_status')
+    z_price = jsons.get('z_price')
+    z_hot = jsons.get('z_hot')
+    z_duureg = jsons.get('z_duureg')
+    z_address = jsons.get('z_address')
+    z_rooms = jsons.get('z_rooms')
+    z_bathroom = jsons.get('z_bathroom')
+    z_balcony = jsons.get('z_balcony')
+    z_m2 = jsons.get('z_m2')
+    z_floor = jsons.get('z_floor')
+    z_hiits = jsons.get('z_hiits')
+    z_description = jsons.get('z_description')
+    images = jsons.get('images', [])  # Base64 array
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+
+        query = """
+            INSERT INTO t_zar (
+                uid, z_title, z_type, z_status, z_price, z_hot, z_duureg, 
+                z_address, z_rooms, z_bathroom, z_balcony, z_m2, z_floor, 
+                z_hiits, z_description, z_isactive
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+            RETURNING zid;
+        """
+        cursor.execute(query, (
+            uid, z_title, z_type, z_status, z_price, z_hot, z_duureg,
+            z_address, z_rooms, z_bathroom, z_balcony, z_m2, z_floor,
+            z_hiits, z_description
+        ))
+        new_zid = cursor.fetchone()[0]
+
+        if images:
+            for img_base64 in images:
+                cursor.execute(
+                    "INSERT INTO t_zar_zurag (zarid, zurag) VALUES (%s, %s);",
+                    (new_zid, img_base64)
+                )
+
+        myConn.commit()
+        resp = sendResponse(request, 7007, [{"zid": new_zid}], action)
+
+    except Exception as e:
+        myConn.rollback()
+        resp = sendResponse(request, 7008, [{"error": str(e)}], action)
+
+    finally:
+        cursor.close()
+        disconnectDB(myConn)
+
+    return JsonResponse(resp)
+
+
+
+def dt_delete_zar(request):
+    jsons = json.loads(request.body)
+    action = jsons.get("action")
+    zar_id = jsons.get("zar_id")
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+        # Зургуудаа устгах
+        cursor.execute("DELETE FROM t_zar_zurag WHERE zarid = %s;", (zar_id,))
+        # Үндсэн зар устгах
+        cursor.execute("DELETE FROM t_zar WHERE zid = %s RETURNING zid;", (zar_id,))
+        deleted = cursor.fetchone()
+        myConn.commit()
+
+        if deleted:
+            resp = sendResponse(request, 9001, [{"zid": deleted[0]}], action)
+        else:
+            resp = sendResponse(request, 9002, [{"error": "Зар олдсонгүй"}], action)
+
+    except Exception as e:
+        myConn.rollback()
+        resp = sendResponse(request, 9003, [{"error": str(e)}], action)
+    finally:
+        cursor.close()
+        disconnectDB(myConn)
+
+    return JsonResponse(resp)
+
+def dt_update_zar(request):
+    """
+    POST request-д ажиллана.
+    Зарын мэдээллийг засна, зураг нэмэх боломжтой.
+    """
+    jsons = json.loads(request.body)
+    action = jsons.get('action')
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+
+        if action != "update_zar":
+            return JsonResponse(sendResponse(request, 3001, [{"error": "Тодорхойгүй action"}], action))
+
+        # UI-аас ирэх өгөгдөл
+        zid = jsons.get("zid")  # засах зарын ID
+        if not zid:
+            return JsonResponse(sendResponse(request, 3000, [{"error": "zid хоосон байна"}], action))
+
+        # Засах боломжтой талбарууд
+        fields = [
+            "z_title", "z_type", "z_status", "z_price", "z_hot", "z_duureg",
+            "z_address", "z_rooms", "z_bathroom", "z_balcony", "z_m2",
+            "z_floor", "z_hiits", "z_description"
+        ]
+
+        # SQL динамик үүсгэх
+        set_parts = []
+        values = []
+        for field in fields:
+            if field in jsons:
+                set_parts.append(f"{field}=%s")
+                values.append(jsons[field])
+
+        if set_parts:
+            sql = f"UPDATE t_zar SET {', '.join(set_parts)} WHERE zid=%s RETURNING zid;"
+            values.append(zid)
+            cursor.execute(sql, tuple(values))
+            updated = cursor.fetchone()
+            if not updated:
+                myConn.rollback()
+                return JsonResponse(sendResponse(request, 7010, [{"error": "Зар олдсонгүй"}], action))
+
+                # Шинэ зураг нэмэх
+        images = jsons.get("images", [])
+        if images:
+            for img_base64 in images:
+                # Давхардлыг шалгах
+                cursor.execute(
+                    "SELECT 1 FROM t_zar_zurag WHERE zarid = %s AND zurag = %s;",
+                    (zid, img_base64)
+                )
+                if cursor.fetchone() is None:
+                    cursor.execute(
+                        "INSERT INTO t_zar_zurag (zarid, zurag) VALUES (%s, %s);",
+                        (zid, img_base64)
+                    )
+
+        # Хэрвээ зураг устгах хүсэлт ирсэн бол
+        remove_images = jsons.get("remove_images", [])  # id массив
+        if remove_images:
+            for img_id in remove_images:
+                cursor.execute(
+                    "DELETE FROM t_zar_zurag WHERE zid=%s AND zarid=%s;",
+                    (img_id, zid)
+                )
+
+        myConn.commit()
+        resp = sendResponse(request, 7011, [{"zid": zid}], action)
+
+    except Exception as e:
+        myConn.rollback()
+        resp = sendResponse(request, 7008, [{"error": str(e)}], action)
+
+    finally:
+        cursor.close()
+        disconnectDB(myConn)
+
+    return JsonResponse(resp)
+
+
+
+
 
 #login service
 def dt_login(request):
@@ -524,7 +913,23 @@ def checkService(request): # hamgiin ehend duudagdah request shalgah service
         # request-n action ni gettime
         if action == "getturul":
             return dt_getturul(request)
-        # request-n action ni login bol ajillana
+        elif action == "getzar":
+            return dt_getzar(request)
+            return JsonResponse(result)
+        elif action == "getzarbyid":
+            return dt_getzarbyid(request)
+            return JsonResponse(result)
+        elif action == "update_zar":
+            return dt_update_zar(request)
+            return JsonResponse(result)
+        elif action == "delete_zar":
+            return dt_delete_zar(request)
+            return JsonResponse(result)
+
+        elif action == "add_zar":
+            return dt_addzar(request)
+            return JsonResponse(result)
+        # request-n action ni login bol ajillana    
         elif action == "login":
             result = dt_login(request)
             return JsonResponse(result)

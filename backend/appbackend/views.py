@@ -329,13 +329,13 @@ def dt_delete_zar(request):
         myConn.commit()
 
         if deleted:
-            resp = sendResponse(request, 9001, [{"zid": deleted[0]}], action)
+            resp = sendResponse(request, 7011, [{"zid": deleted[0]}], action)
         else:
             resp = sendResponse(request, 9002, [{"error": "Зар олдсонгүй"}], action)
 
     except Exception as e:
         myConn.rollback()
-        resp = sendResponse(request, 9003, [{"error": str(e)}], action)
+        resp = sendResponse(request, 7012, [{"error": str(e)}], action)
     finally:
         cursor.close()
         disconnectDB(myConn)

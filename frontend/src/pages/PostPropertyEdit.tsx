@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Upload, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -12,6 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -28,6 +40,8 @@ interface ImageObj {
 
 const EditProperty = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [images, setImages] = useState<string[]>([]);
   const [removeImageIds, setRemoveImageIds] = useState<string[]>([]);
@@ -56,6 +70,9 @@ const EditProperty = () => {
     z_floor: "",
     z_description: "",
   });
+
+  // Popconfirm state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Турш, төлөв, хот, дүүрэг, хийц ачааллах
   useEffect(() => {
@@ -192,46 +209,61 @@ const EditProperty = () => {
         result.error === "7011";
 
       if (isSuccess) {
-        alert("Зар амжилттай засагдлаа!");
-        // window.location.href = "/my-properties";
+        toast({
+          title: "Зар амжилттай засагдлаа!",
+        });
+        navigate("/");
       } else {
-        alert("Алдаа гарлаа: " + JSON.stringify(result));
+        toast({
+          title: "Алдаа гарлаа",
+          description: JSON.stringify(result),
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Сервертэй холбогдоход алдаа гарлаа");
+      toast({
+        title: "Сервертэй холбогдоход алдаа гарлаа",
+        variant: "destructive",
+      });
     }
   };
 
-  // ЗАР УСТГАХ ФУНКЦ
+  // ЗАР УСТГАХ ФУНКЦ (Popconfirm-д ашиглана)
   const handleDelete = async () => {
     if (!id) return;
-
-    const confirmDelete = window.confirm("Та энэ зарыг бүрмөсөн устгахдаа итгэлтэй байна вэ?");
-    if (!confirmDelete) return;
 
     try {
       const res = await fetch("http://localhost:8000/user/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "delete_zar",   // Бэкенд дээрх action нэр
-          zar_id: id,             // zid → zar_id
+          action: "delete_zar",
+          zar_id: id,
         }),
       });
 
       const result = await res.json();
 
-      if (result.resultCode === 9001) {
-        alert("Зар амжилттай устлаа!");
-        window.location.href = "/my-properties"; // Хэрэглэгчийн зар руу буцах
+      if (result.resultCode === 7011) {
+        toast({
+          title: "Зар амжилттай устгалаа!",
+        });
+        setDeleteDialogOpen(false);
+        navigate("/");
       } else {
-        const errorMsg = result.message || result.error || JSON.stringify(result);
-        alert("Устгахад алдаа гарлаа: " + errorMsg);
+        toast({
+          title: "Устгахад алдаа гарлаа",
+          description: result.message || result.error || JSON.stringify(result),
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Устгахад алдаа:", err);
-      alert("Сервертэй холбогдоход алдаа гарлаа");
+      toast({
+        title: "Сервертэй холбогдоход алдаа гарлаа",
+        variant: "destructive",
+      });
     }
   };
 
@@ -432,17 +464,33 @@ const EditProperty = () => {
               </CardContent>
             </Card>
 
-            {/* Товчнууд: Засах + Устгах */}
+            {/* Товчнууд: Засах + Устгах (Popconfirm) */}
             <div className="flex justify-end gap-4 pt-8">
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                className="text-lg px-8"
-                onClick={handleDelete}
-              >
-                Зар устгах
-              </Button>
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="lg" className="text-lg px-8">
+                    Зар устгах
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Та итгэлтэй байна уу?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Энэ зарыг <strong>бүрмөсөн устгана</strong>. Энэ үйлдлийг буцаах боломжгүй.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Болих</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Тийм, устгах
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
               <Button type="submit" size="lg" className="text-lg px-12">
                 Зар засах
               </Button>

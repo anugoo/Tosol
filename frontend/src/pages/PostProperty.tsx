@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useToast } from "@/hooks/use-toast";
 
 interface Turul { tid: number; tname: string; temoji?: string; }
 interface Tuluv { tid: number; tname: string; }
@@ -15,6 +16,7 @@ interface District { did: number; dname: string; hid: number; }
 interface Hiits { h_id: number; h_name: string; }
 
 const PostProperty = () => {
+  const { toast } = useToast();
   const [images, setImages] = useState<string[]>([]);
   const [turul, setTurul] = useState<Turul[]>([]);
   const [tuluv, setTuluv] = useState<Tuluv[]>([]);
@@ -27,6 +29,7 @@ const PostProperty = () => {
   const [selectedCity, setSelectedCity] = useState<string>();
   const [selectedDistrict, setSelectedDistrict] = useState<string>();
   const [selectedHiits, setSelectedHiits] = useState<string>();
+
 
   useEffect(() => {
     fetch("http://localhost:8000/user/", {
@@ -102,7 +105,10 @@ const PostProperty = () => {
       });
       const data = await res.json();
       if (data.resultCode === 7007) {
-        alert(`Зар амжилттай нэмэгдлээ! ID: ${data.data[0].zid}`);
+        toast({
+          title: "Амжилттай!",
+          description: `Зар амжилттай нэмэгдлээ! ID: ${data.data[0].zid}`,
+        });
         setImages([]);
         setSelectedCity(undefined);
         setSelectedDistrict(undefined);
@@ -220,7 +226,7 @@ const PostProperty = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload"/>
+                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" id="image-upload" />
                     <label htmlFor="image-upload" className="cursor-pointer">
                       <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground mb-2">Зургаа чирж оруулах эсвэл дарж сонгох</p>
@@ -231,7 +237,7 @@ const PostProperty = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {images.map((image, index) => (
                         <div key={index} className="relative group">
-                          <img src={image} alt={`Upload ${index+1}`} className="w-full h-24 object-cover rounded-lg"/>
+                          <img src={image} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
                           <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <X className="h-4 w-4" />
                           </button>
@@ -244,8 +250,8 @@ const PostProperty = () => {
             </Card>
 
             <div className="flex gap-4">
-              <Button type="button" variant="outline" className="flex-1">Урьдчилан харах</Button>
-              <Button type="submit" variant="hero" className="flex-1">Зар нийтлэх</Button>
+              {/* <Button type="button" variant="outline" className="flex-1">Урьдчилан харах</Button> */}
+              <Button type="submit" variant="outline" className="flex-1 bg-white">Зар нийтлэх</Button>
             </div>
           </form>
         </div>

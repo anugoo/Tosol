@@ -6,6 +6,9 @@ import { useNavigate } from "react-router-dom";
 const Header = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const token = localStorage.getItem("token");
+  const isLogin = !!token; // token байвал true, үгүй бол false
+
 
   return (
     <header className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-50 shadow-lg">
@@ -13,61 +16,70 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center space-x-2 text-2xl font-bold text-primary hover:scale-105 transition-transform duration-300"
-          >
-            {/* Favicon / Logo image */}
-            <img
-              src="/favicon.ico"  // ← энэ замыг favicon эсвэл өөрийн логогоор солино
-              alt="Logo"
-              className="w-8 h-8"
-            />
-            <span>Гэрэ</span>
-          </button>
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center space-x-2 text-2xl font-bold text-primary hover:scale-105 transition-transform duration-300"
+            >
+              {/* Favicon / Logo image */}
+              <img
+                src="/favicon.ico"  // ← энэ замыг favicon эсвэл өөрийн логогоор солино
+                alt="Logo"
+                className="w-8 h-8"
+              />
+              <span>Гэрэ</span>
+            </button>
 
           </div>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <button className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105">
+            {/* <button className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105">
               Худалдан авах
             </button>
             <button className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105">
               Түрээслэх
             </button>
-            <button 
+            <button
               onClick={() => navigate("/post")}
               className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105"
             >
               Зар оруулах
-            </button>
-            <button className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105">
+            </button> */}
+            {/* <button
+              disabled
+              className="text-foreground self-end transition-all duration-300 font-medium"
+            >
               Тооцоолуур
-            </button>
+            </button> */}
           </nav>
 
           {/* Auth & Mobile Menu */}
           <div className="flex items-center space-x-3">
-            {/* Нэвтрэх */}
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="hidden md:flex rounded-xl"
-              onClick={() => navigate("/login")}
-            >
-              Нэвтрэх
-            </Button>
 
-            {/* Бүртгүүлэх */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="hidden md:flex rounded-xl"
-              onClick={() => navigate("/signup")}
+
+
+
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <button
+              disabled
+              className="text-foreground self-auto transition-all duration-300 font-medium"
             >
-              Бүртгүүлэх
-            </Button>
+              Тооцоолуур
+            </button>
+            {/* Нэвтрэх */}
+
+            {!isLogin && (
+              <>
+                <Button variant="ghost" size="sm" className="hidden md:flex rounded-xl" onClick={() => navigate("/login")}>
+                  Нэвтрэх
+                </Button>
+                <Button variant="outline" size="sm" className="hidden md:flex rounded-xl" onClick={() => navigate("/signup")}>
+                  Бүртгүүлэх
+                </Button>
+              </>
+            )}
 
             {/* Mobile menu toggle */}
             <Button
@@ -85,7 +97,7 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden pb-4 border-t border-border/50 mt-2 pt-4 bg-card/50 rounded-b-xl">
             <nav className="flex flex-col space-y-3">
-              <button 
+              <button
                 onClick={() => {
                   navigate("/");
                   setIsMenuOpen(false);
@@ -100,7 +112,7 @@ const Header = () => {
               <button className="text-left px-4 py-2 text-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all">
                 Түрээслэх
               </button>
-              <button 
+              <button
                 onClick={() => {
                   navigate("/post");
                   setIsMenuOpen(false);
@@ -115,9 +127,9 @@ const Header = () => {
 
               {/* Mobile login/signup */}
               <div className="flex flex-col gap-2 pt-2 px-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="rounded-xl"
                   onClick={() => {
                     navigate("/login");
@@ -126,9 +138,9 @@ const Header = () => {
                 >
                   Нэвтрэх
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-xl"
                   onClick={() => {
                     navigate("/signup");

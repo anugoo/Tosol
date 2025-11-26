@@ -82,15 +82,28 @@ const PropertyDetails = () => {
     if (id) fetchProperty();
   }, [id]);
 
-  // === Base64 болон URL зураг шалгах ===
   const getImageSrc = (img?: string) => {
     if (!img) return "/placeholder.jpg";
-    if (img.startsWith("data:image")) return img;
-    if (/^[A-Za-z0-9+/=]+$/.test(img.slice(0, 100)))
-      return `data:image/jpeg;base64,${img}`;
-    return `${import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000"}${img}`;
+  
+    // Base64 зураг
+    if (img.startsWith("data:image/jpeg;base64,/") && !img.includes("/media/")) {
+      return img; 
+    }
+  
+    // Серверийн зам
+    if (img.includes("/media/")) {
+      // /media/ хэсгээс эхэлж авах
+      const mediaPath = img.substring(img.indexOf("/media/"));
+      return `${import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000"}${mediaPath}`;
+    }
+  
+    // Бусад URL
+    return img;
   };
-
+  
+  
+  
+  
   // === Navigation зураг солих ===
   const nextImage = () => {
     setCurrentImageIndex((prev) =>
@@ -127,6 +140,7 @@ const PropertyDetails = () => {
     ? property.images.map((img) => getImageSrc(img.image_path))
     : ["/placeholder.jpg"];
 
+    console.log("____________",property.images)
   return (
     <div className="min-h-screen bg-background">
       <Header />

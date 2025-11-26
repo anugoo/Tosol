@@ -11,19 +11,20 @@ interface PropertyCardProps {
   beds: number;
   baths: number;
   area: string;
-  type: "sale" | "rent";
+  type: string;
+
 }
 
-const PropertyCard = ({ 
-  id, 
-  image, 
-  title, 
-  price, 
-  location, 
-  beds, 
-  baths, 
-  area, 
-  type 
+const PropertyCard = ({
+  id,
+  image,
+  title,
+  price,
+  location,
+  beds,
+  baths,
+  area,
+  type
 }: PropertyCardProps) => {
   const navigate = useNavigate();
 
@@ -36,24 +37,37 @@ const PropertyCard = ({
     navigate(`/property/edit/${id}`);
   };
 
+  console.log("AZ________type:", type)
+
+  const token = localStorage.getItem("token");
+  const isLogin = !!token; // token байвал true, үгүй бол false
+
   return (
     <div className="property-card overflow-hidden group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl rounded-2xl bg-card border border-border/50">
       {/* Image */}
       <div className="relative overflow-hidden rounded-t-2xl" onClick={handleCardClick}>
-        <img 
-          src={image} 
+        <img
+          src={image}
           alt={title}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 left-3">
-          <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
-            type === 'sale' 
-              ? 'bg-secondary text-secondary-foreground' 
-              : 'bg-primary text-primary-foreground'
-          }`}>
-            {type === 'sale' ? 'Худалдах' : 'Түрээслэх'}
+          <span
+            className={`px-2 py-1 rounded-lg text-sm font-medium ${type === "sale"
+                ? "bg-secondary text-secondary-foreground"
+                : type === "rent"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-green-500 text-black" // preorder
+              }`}
+          >
+            {type === "sale"
+              ? "Худалдах"
+              : type === "rent"
+                ? "Түрээслэх"
+                : "Урьдчилсан захиалга"}
           </span>
         </div>
+
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
             <Heart className="h-4 w-4" />
@@ -93,9 +107,9 @@ const PropertyCard = ({
         </div>
 
         <div className="mt-4 flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-1 rounded-xl hover:bg-primary hover:text-primary-foreground transition-all duration-300"
             onClick={(e) => {
               e.stopPropagation();
@@ -104,15 +118,16 @@ const PropertyCard = ({
           >
             Дэлгэрэнгүй
           </Button>
-          <Button 
-            variant="gold"
-            size="sm" 
-            className="flex-1 rounded-xl flex items-center justify-center gap-1"
-            onClick={handleEdit}
-          >
-            <Edit2 className="h-4 w-4" />
-            Засах/Устгах
-          </Button>
+          {isLogin && (
+            <Button
+              variant="gold"
+              size="sm"
+              className="flex-1 rounded-xl flex items-center justify-center gap-1"
+              onClick={handleEdit}
+            >
+              <Edit2 className="h-4 w-4" />
+              Засах/Устгах
+            </Button>)}
         </div>
       </div>
     </div>

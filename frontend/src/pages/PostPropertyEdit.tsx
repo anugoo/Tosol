@@ -152,19 +152,29 @@ const EditProperty = () => {
       const reader = new FileReader();
       reader.onload = ev => {
         if (ev.target?.result) {
-          setImages(prev => [...prev, ev.target.result as string]);
+          const newImage = ev.target.result as string;
+
+          // Хэрвээ аль хэдийн images-д байгаа бол нэмэхгүй
+          setImages(prev => (prev.includes(newImage) ? prev : [...prev, newImage]));
         }
       };
       reader.readAsDataURL(file);
     });
+
+    // Файлын input-ийг цэвэрлэх (дараа дахин нэг файл сонгоход ажиллана)
+    e.target.value = "";
   };
 
   const removeImage = (index: number) => {
     const removedUrl = images[index];
+
+    // Хэрвээ originalImages-д байгаа бол removeImageIds-д нэмэх
     const originalImg = originalImages.find(img => img.image_path === removedUrl);
     if (originalImg?.zurag_id) {
       setRemoveImageIds(prev => [...prev, originalImg.zurag_id.toString()]);
     }
+
+    // images-аас устгах
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -266,6 +276,25 @@ const EditProperty = () => {
       });
     }
   };
+
+  const getImageSrc = (img?: string) => {
+    if (!img) return "/placeholder.jpg";
+
+    // Base64 зураг
+    if (img.startsWith("data:image/jpeg;base64,/") && !img.includes("/media/")) {
+      return img;
+    }
+
+    // Серверийн зам
+    if (img.includes("/media/")) {
+      const mediaPath = img.substring(img.indexOf("/media/"));
+      return `${import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000"}${mediaPath}`;
+    }
+
+    // Бусад URL
+    return img;
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -441,15 +470,17 @@ const EditProperty = () => {
                   <label htmlFor="upload-edit" className="cursor-pointer">
                     <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-lg mb-2">Зураг чирж оруулах эсвэл дарж сонгох</p>
-                    <Button type="button" variant="outline">Зураг сонгох</Button>
                   </label>
                 </div>
-
                 {images.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-8">
                     {images.map((img, i) => (
                       <div key={i} className="relative group">
-                        <img src={img} alt={`Зураг ${i + 1}`} className="w-full h-40 object-cover rounded-lg" />
+                        <img
+                          src={getImageSrc(img)}
+                          alt={`Зураг ${i + 1}`}
+                          className="w-full h-40 object-cover rounded-lg"
+                        />
                         <button
                           type="button"
                           onClick={() => removeImage(i)}
@@ -461,6 +492,8 @@ const EditProperty = () => {
                     ))}
                   </div>
                 )}
+
+
               </CardContent>
             </Card>
 

@@ -53,6 +53,20 @@ const Header = () => {
               className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105"
             >
               Зар оруулах
+            </button>
+            {isLogin && (
+              <button
+                onClick={() => navigate("/liked")}
+                className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105"
+              >
+                Таалагдсан
+              </button>
+            )}
+            <button
+              onClick={() => navigate("/leaderboard")}
+              className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105"
+            >
+              Лидерборд
             </button> */}
             {/* <button
               disabled
@@ -134,6 +148,26 @@ const Header = () => {
                 className="text-left px-4 py-2 text-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all"
               >
                 Зар оруулах
+              </button>
+              {isLogin && (
+                <button
+                  onClick={() => {
+                    navigate("/liked");
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-2 text-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all"
+                >
+                  Таалагдсан
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  navigate("/leaderboard");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all"
+              >
+                Лидерборд
               </button>
               <button className="text-left px-4 py-2 text-foreground hover:text-primary hover:bg-accent/50 rounded-lg transition-all">
                 Холбоо барих

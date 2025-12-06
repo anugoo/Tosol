@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from backend.settings import sendResponse
 
 # Import modules
-from . import auth, properties, comments, ml_price, edituser, user_dashboard
+from . import auth, properties, comments, ml_price, edituser, user_dashboard, likes
 
 
 @csrf_exempt
@@ -77,7 +77,17 @@ def checkService(request):
             return user_dashboard.dt_get_user_info(request)
         elif action == "update_user_profile":
             return user_dashboard.dt_update_user_profile(request)
-        
+
+        # Likes actions
+        elif action == "toggle_like":
+            return likes.dt_toggle_like(request)
+        elif action == "get_likes_count":
+            return likes.dt_get_likes_count(request)
+        elif action == "get_user_likes":
+            return likes.dt_get_user_likes(request)
+        elif action == "get_most_liked":
+            return likes.dt_get_most_liked(request)
+
         else:
             action = "no action"
             respdata = []

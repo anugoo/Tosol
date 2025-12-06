@@ -14,6 +14,8 @@ import Verified from "./pages/Verified";
 import EditProperty from "./pages/PostPropertyEdit";
 import Dashboard from "./pages/Dashboard";
 import PriceEstimator from "./pages/PriceEstimator";
+import Liked from "./pages/Liked";
+import Leaderboard from "./pages/Leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/property/edit/:id" element={<EditProperty />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/price-estimator" element={<PriceEstimator />} />
+          <Route path="/liked" element={<Liked />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

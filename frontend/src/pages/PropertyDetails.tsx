@@ -1,5 +1,5 @@
 // src/components/PropertyDetails.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -79,22 +79,37 @@ const PropertyDetails = () => {
   const [newComment, setNewComment] = useState("");
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [loadingLike, setLoadingLike] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState<string | null>(null); // Track which property data is loaded
   const { toast } = useToast();
   
-  // Check if user is logged in
-  const isLoggedIn = !!localStorage.getItem("token");
-  let currentUser: any = null;
-  try {
-    const tokenStr = localStorage.getItem("token");
-    if (tokenStr) {
-      currentUser = JSON.parse(tokenStr);
+  // Check if user is logged in - memoize to prevent unnecessary re-renders
+  const isLoggedIn = useMemo(() => !!localStorage.getItem("token"), []);
+
+  const currentUser = useMemo(() => {
+    if (!isLoggedIn) return null;
+    try {
+      const tokenStr = localStorage.getItem("token");
+      return tokenStr ? JSON.parse(tokenStr) : null;
+    } catch (e) {
+      return null;
     }
-  } catch (e) {
-    // Invalid token
-  }
+  }, [isLoggedIn]);
 
   // === Зарын дэлгэрэнгүй мэдээлэл татах ===
   useEffect(() => {
+    if (!id) return;
+
+    // Reset data when property ID changes
+    if (dataLoaded !== id) {
+      setDataLoaded(null);
+      setComments([]);
+      setLikesCount(0);
+      setIsLiked(false);
+    }
+
     const fetchProperty = async () => {
       try {
         setLoading(true);
@@ -115,13 +130,15 @@ const PropertyDetails = () => {
       }
     };
 
-    if (id) fetchProperty();
+    fetchProperty();
   }, [id]);
 
-  // === Сэтгэгдлүүд татах ===
+  // === Сэтгэгдлүүд болон лайкууд татах ===
   useEffect(() => {
-    if (!id) return;
-    
+    if (!id || dataLoaded === id) return; // Don't fetch if already loaded for this property
+
+    console.log("PropertyDetails useEffect triggered for property:", id);
+
     const fetchComments = async () => {
       try {
         setLoadingComments(true);
@@ -140,8 +157,50 @@ const PropertyDetails = () => {
       }
     };
 
+    const fetchLikesCount = async () => {
+      try {
+        const response = await sendRequest<any>(API_URL, "POST", {
+          action: "get_likes_count",
+          zar_id: id,
+        });
+
+        if (response.resultCode === 9003 && response.data && response.data[0]) {
+          setLikesCount(response.data[0].likes_count || 0);
+        }
+      } catch (err: any) {
+        console.error("Failed to load likes count:", err);
+      }
+    };
+
+    const checkIfLiked = async () => {
+      if (!currentUser?.uid) return;
+
+      try {
+        console.log("Checking if user liked property:", id);
+        const response = await sendRequest<any>(API_URL, "POST", {
+          action: "get_user_likes",
+          uid: currentUser.uid,
+        });
+
+        if (response.resultCode === 9005 && response.data) {
+          const isPropertyLiked = response.data.some((prop: any) => prop.zid == id);
+          setIsLiked(isPropertyLiked);
+        }
+      } catch (err: any) {
+        console.error("Failed to check if liked:", err);
+      }
+    };
+
     fetchComments();
-  }, [id]);
+    fetchLikesCount();
+    checkIfLiked();
+    setDataLoaded(id); // Mark this property's data as loaded
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      // Any cleanup logic if needed
+    };
+  }, [id, currentUser?.uid, dataLoaded]); // Include dataLoaded to prevent re-runs
 
   // === Сэтгэгдэл нэмэх ===
   const handleAddComment = async () => {
@@ -242,6 +301,52 @@ const PropertyDetails = () => {
         description: err.message || "Сервертэй холбогдоход алдаа гарлаа",
         variant: "destructive",
       });
+    }
+  };
+
+  // === Лайк/дисллайк функц ===
+  const handleToggleLike = async () => {
+    if (!isLoggedIn || !currentUser) {
+      toast({
+        title: "Алдаа",
+        description: "Лайк хийхийн тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setLoadingLike(true);
+      const response = await sendRequest<any>(API_URL, "POST", {
+        action: "toggle_like",
+        zar_id: id,
+        uid: currentUser.uid,
+      });
+
+      if (response.resultCode === 9001 && response.data && response.data[0]) {
+        setIsLiked(response.data[0].action === "liked");
+        setLikesCount(response.data[0].likes_count || 0);
+
+        toast({
+          title: "Амжилттай!",
+          description: response.data[0].action === "liked" ? "Зар таалагдлаа!" : "Лайк цуцлагдлаа",
+        });
+      } else {
+        toast({
+          title: "Алдаа",
+          description: response.resultMessage || "Лайк хийхэд алдаа гарлаа",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Алдаа",
+        description: err.message || "Сервертэй холбогдоход алдаа гарлаа",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLike(false);
     }
   };
 
@@ -587,8 +692,14 @@ const PropertyDetails = () => {
                     </DialogContent>
                   </Dialog>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">
-                      <Heart className="h-4 w-4" />
+                    <Button
+                      variant={isLiked ? "default" : "outline"}
+                      className={`flex-1 gap-2 ${isLiked ? "bg-red-500 hover:bg-red-600 text-white" : ""}`}
+                      onClick={handleToggleLike}
+                      disabled={loadingLike}
+                    >
+                      <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+                      {likesCount > 0 && <span className="text-sm">{likesCount}</span>}
                     </Button>
                     <Button variant="outline" className="flex-1">
                       <Share2 className="h-4 w-4" />

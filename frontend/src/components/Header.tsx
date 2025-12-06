@@ -1,4 +1,4 @@
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,15 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const token = localStorage.getItem("token");
   const isLogin = !!token; // token байвал true, үгүй бол false
+  
+  let userData: any = null;
+  try {
+    if (token) {
+      userData = JSON.parse(token);
+    }
+  } catch (e) {
+    // Invalid token
+  }
 
 
   return (
@@ -63,14 +72,14 @@ const Header = () => {
 
           <div className="flex items-center space-x-3">
             <button
-              disabled
-              className="text-foreground self-auto transition-all duration-300 font-medium"
+              onClick={() => navigate("/price-estimator")}
+              className="text-foreground hover:text-primary transition-all duration-300 font-medium hover:scale-105"
             >
               Тооцоолуур
             </button>
             {/* Нэвтрэх */}
 
-            {!isLogin && (
+            {!isLogin ? (
               <>
                 <Button variant="ghost" size="sm" className="hidden md:flex rounded-xl" onClick={() => navigate("/login")}>
                   Нэвтрэх
@@ -79,6 +88,11 @@ const Header = () => {
                   Бүртгүүлэх
                 </Button>
               </>
+            ) : (
+              <Button variant="outline" size="sm" className="hidden md:flex rounded-xl gap-2" onClick={() => navigate("/dashboard")}>
+                <User className="h-4 w-4" />
+                {userData?.fname || "Самбар"}
+              </Button>
             )}
 
             {/* Mobile menu toggle */}

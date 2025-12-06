@@ -10,11 +10,27 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
+  Phone,
+  Copy,
+  Check,
+  MessageSquare,
+  Send,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { sendRequest } from "@/utils/api";
+import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 // === Төрлүүд ===
 interface ZarImage {
@@ -27,6 +43,7 @@ interface Zar {
   zid: number;
   uid: number;
   user_email: string;
+  user_phone?: string;
   z_title: string;
   type_name: string;
   status_name: string;
@@ -56,6 +73,25 @@ const PropertyDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const { toast } = useToast();
+  
+  // Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem("token");
+  let currentUser: any = null;
+  try {
+    const tokenStr = localStorage.getItem("token");
+    if (tokenStr) {
+      currentUser = JSON.parse(tokenStr);
+    }
+  } catch (e) {
+    // Invalid token
+  }
 
   // === Зарын дэлгэрэнгүй мэдээлэл татах ===
   useEffect(() => {
@@ -81,6 +117,133 @@ const PropertyDetails = () => {
 
     if (id) fetchProperty();
   }, [id]);
+
+  // === Сэтгэгдлүүд татах ===
+  useEffect(() => {
+    if (!id) return;
+    
+    const fetchComments = async () => {
+      try {
+        setLoadingComments(true);
+        const response = await sendRequest<any>(API_URL, "POST", {
+          action: "get_comments",
+          zar_id: id,
+        });
+
+        if (response.resultCode === 8003 && response.data) {
+          setComments(response.data);
+        }
+      } catch (err: any) {
+        console.error("Failed to load comments:", err);
+      } finally {
+        setLoadingComments(false);
+      }
+    };
+
+    fetchComments();
+  }, [id]);
+
+  // === Сэтгэгдэл нэмэх ===
+  const handleAddComment = async () => {
+    if (!isLoggedIn || !currentUser) {
+      toast({
+        title: "Алдаа",
+        description: "Сэтгэгдэл нэмэхийн тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    if (!newComment.trim()) {
+      toast({
+        title: "Алдаа",
+        description: "Сэтгэгдэл хоосон байна",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingComment(true);
+      const response = await sendRequest<any>(API_URL, "POST", {
+        action: "add_comment",
+        zar_id: id,
+        uid: currentUser.uid,
+        comment_text: newComment.trim(),
+      });
+
+      if (response.resultCode === 8001) {
+        toast({
+          title: "Амжилттай!",
+          description: "Сэтгэгдэл нэмэгдлээ",
+        });
+        setNewComment("");
+        // Reload comments
+        const commentsResponse = await sendRequest<any>(API_URL, "POST", {
+          action: "get_comments",
+          zar_id: id,
+        });
+        if (commentsResponse.resultCode === 8003 && commentsResponse.data) {
+          setComments(commentsResponse.data);
+        }
+      } else {
+        toast({
+          title: "Алдаа",
+          description: response.resultMessage || "Сэтгэгдэл нэмэхэд алдаа гарлаа",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Алдаа",
+        description: err.message || "Сервертэй холбогдоход алдаа гарлаа",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  // === Сэтгэгдэл устгах ===
+  const handleDeleteComment = async (commentId: number) => {
+    if (!currentUser) return;
+
+    try {
+      const response = await sendRequest<any>(API_URL, "POST", {
+        action: "delete_comment",
+        comment_id: commentId,
+        uid: currentUser.uid,
+      });
+
+      if (response.resultCode === 8007) {
+        toast({
+          title: "Амжилттай!",
+          description: "Сэтгэгдэл устгалаа",
+        });
+        // Reload comments
+        const commentsResponse = await sendRequest<any>(API_URL, "POST", {
+          action: "get_comments",
+          zar_id: id,
+        });
+        if (commentsResponse.resultCode === 8003 && commentsResponse.data) {
+          setComments(commentsResponse.data);
+        }
+      } else {
+        toast({
+          title: "Алдаа",
+          description: response.resultMessage || "Устгахад алдаа гарлаа",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Алдаа",
+        description: err.message || "Сервертэй холбогдоход алдаа гарлаа",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getImageSrc = (img?: string) => {
     if (!img) return "/placeholder.jpg";
@@ -119,6 +282,18 @@ const PropertyDetails = () => {
     );
   };
 
+  const handleCopyPhone = () => {
+    if (property?.user_phone) {
+      navigator.clipboard.writeText(property.user_phone);
+      setCopied(true);
+      toast({
+        title: "Амжилттай!",
+        description: "Утасны дугаар хуулагдлаа",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -140,7 +315,6 @@ const PropertyDetails = () => {
     ? property.images.map((img) => getImageSrc(img.image_path))
     : ["/placeholder.jpg"];
 
-    console.log("____________",property.images)
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -275,6 +449,89 @@ const PropertyDetails = () => {
                 {property.z_description || "Мэдээлэл байхгүй"}
               </p>
             </div>
+
+            {/* Comments Section */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-lg">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                <MessageSquare className="h-6 w-6" />
+                Сэтгэгдлүүд ({comments.length})
+              </h2>
+
+              {/* Add Comment Form */}
+              {isLoggedIn ? (
+                <div className="mb-6 space-y-3">
+                  <Textarea
+                    placeholder="Сэтгэгдэл үлдээх..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                  <Button
+                    onClick={handleAddComment}
+                    disabled={submittingComment || !newComment.trim()}
+                    className="gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    {submittingComment ? "Илгээж байна..." : "Илгээх"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="mb-6 p-4 bg-muted rounded-lg text-center">
+                  <p className="text-muted-foreground mb-3">
+                    Сэтгэгдэл үлдээхийн тулд нэвтэрнэ үү
+                  </p>
+                  <Button onClick={() => navigate("/login")} variant="outline">
+                    Нэвтрэх
+                  </Button>
+                </div>
+              )}
+
+              {/* Comments List */}
+              {loadingComments ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Сэтгэгдлүүд ачаалж байна...</p>
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Одоогоор сэтгэгдэл байхгүй</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <div
+                      key={comment.comment_id}
+                      className="p-4 bg-muted/50 rounded-lg border border-border"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="font-semibold">
+                            {comment.fname} {comment.lname}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {comment.createddate
+                              ? new Date(comment.createddate).toLocaleString()
+                              : ""}
+                          </div>
+                        </div>
+                        {currentUser && currentUser.uid === comment.uid && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteComment(comment.comment_id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-foreground whitespace-pre-line">
+                        {comment.comment_text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -283,10 +540,52 @@ const PropertyDetails = () => {
               <div className="p-6 bg-card rounded-xl border border-border">
                 <h3 className="font-semibold mb-4">Холбоо барих</h3>
                 <div className="space-y-3">
-                  <Button className="w-full">Утсаар холбогдох</Button>
-                  <Button variant="outline" className="w-full">
-                    Мессеж илгээх
-                  </Button>
+                  <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">
+                        <Phone className="h-4 w-4 mr-2" />
+                        Холбогдох
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Холбоо барих мэдээлэл</DialogTitle>
+                        <DialogDescription>
+                          Зар оруулсан хэрэглэгчийн утасны дугаар
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        {property?.user_phone ? (
+                          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Phone className="h-5 w-5 text-primary" />
+                              <span className="text-lg font-semibold">{property.user_phone}</span>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCopyPhone}
+                              className="gap-2"
+                            >
+                              {copied ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Хуулагдлаа
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4" />
+                                  Хуулах
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">Утасны дугаар олдсонгүй</p>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1">
                       <Heart className="h-4 w-4" />

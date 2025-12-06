@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Upload, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,21 @@ interface District { did: number; dname: string; hid: number; }
 interface Hiits { h_id: number; h_name: string; }
 
 const PostProperty = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check authentication
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast({
+        title: "Нэвтрэх шаардлагатай",
+        description: "Зар оруулахын тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [navigate, toast]);
 
   // Dropdown data
   const [turul, setTurul] = useState<Turul[]>([]);
@@ -112,10 +127,39 @@ const PostProperty = () => {
       return;
     }
 
+    // Get user ID from localStorage
+    const tokenStr = localStorage.getItem("token");
+    if (!tokenStr) {
+      toast({
+        title: "Алдаа",
+        description: "Зар оруулахын тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+      return;
+    }
+    
+    let uid: string;
+    try {
+      const userData = JSON.parse(tokenStr);
+      uid = userData.uid?.toString() || "";
+      if (!uid) {
+        throw new Error("UID олдсонгүй");
+      }
+    } catch (err) {
+      toast({
+        title: "Алдаа",
+        description: "Хэрэглэгчийн мэдээлэл буруу байна. Дахин нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+      return;
+    }
+
     // Нэгдсэн payload (JSON)
     const payload = {
       action: "add_zar",
-      uid: "115", // та логин хийж uid авдаг бол энд динамикаар оруулна уу
+      uid: uid,
       z_title: formValues.title,
       z_type: selectedTurul,
       z_status: selectedTuluv,

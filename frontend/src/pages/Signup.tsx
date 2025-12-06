@@ -26,6 +26,7 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
 
   /** 🔹 Бүртгүүлэх функц */
   const handleSignup = async (e: React.FormEvent) => {
@@ -56,6 +57,7 @@ const Signup = () => {
           upassword: hashedPassword,
           lname: lastName,
           fname: firstName,
+          phone // include phone if provided, empty string if not
         }
       );
 
@@ -123,6 +125,17 @@ const Signup = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 h-12 rounded-xl bg-accent/10"
                 required
+              />
+            </div>
+
+            {/* Утас (шинээр нэмэх) */}
+            <div className="relative">
+              <Input
+                type="tel"
+                placeholder="Утас (заавал биш)"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                className="pl-10 h-12 rounded-xl bg-accent/10"
               />
             </div>
 

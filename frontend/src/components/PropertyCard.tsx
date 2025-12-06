@@ -32,15 +32,7 @@ const PropertyCard = ({
     navigate(`/property/${id}`);
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation(); // карт руу очих click-г тасалдуулна
-    navigate(`/property/edit/${id}`);
-  };
-
   console.log("AZ________type:", type)
-
-  const token = localStorage.getItem("token");
-  const isLogin = !!token; // token байвал true, үгүй бол false
 
   return (
     <div className="property-card overflow-hidden group cursor-pointer transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl rounded-2xl bg-card border border-border/50">
@@ -66,15 +58,6 @@ const PropertyCard = ({
                 ? "Түрээслэх"
                 : "Урьдчилсан захиалга"}
           </span>
-        </div>
-
-        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-            <Heart className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-            <Share2 className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -118,7 +101,7 @@ const PropertyCard = ({
           >
             Дэлгэрэнгүй
           </Button>
-          {isLogin && (
+          {/* {isLogin && (
             <Button
               variant="gold"
               size="sm"
@@ -127,7 +110,7 @@ const PropertyCard = ({
             >
               <Edit2 className="h-4 w-4" />
               Засах/Устгах
-            </Button>)}
+            </Button>)} */}
         </div>
       </div>
     </div>

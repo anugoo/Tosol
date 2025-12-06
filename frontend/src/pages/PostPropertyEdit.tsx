@@ -183,9 +183,37 @@ const EditProperty = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Get user ID from localStorage
+    const tokenStr = localStorage.getItem("token");
+    if (!tokenStr) {
+      toast({
+        title: "Алдаа",
+        description: "Зар засахын тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let uid: string;
+    try {
+      const userData = JSON.parse(tokenStr);
+      uid = userData.uid?.toString() || "";
+      if (!uid) {
+        throw new Error("UID олдсонгүй");
+      }
+    } catch (err) {
+      toast({
+        title: "Алдаа",
+        description: "Хэрэглэгчийн мэдээлэл буруу байна. Дахин нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const payload = {
       action: "update_zar",
       zid: id,
+      uid: uid,
       z_title: formData.z_title,
       z_type: safe(selectedTurul),
       z_status: safe(selectedTuluv),
@@ -243,6 +271,33 @@ const EditProperty = () => {
   const handleDelete = async () => {
     if (!id) return;
 
+    // Get user ID from localStorage
+    const tokenStr = localStorage.getItem("token");
+    if (!tokenStr) {
+      toast({
+        title: "Алдаа",
+        description: "Зар устгахын тулд нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let uid: string;
+    try {
+      const userData = JSON.parse(tokenStr);
+      uid = userData.uid?.toString() || "";
+      if (!uid) {
+        throw new Error("UID олдсонгүй");
+      }
+    } catch (err) {
+      toast({
+        title: "Алдаа",
+        description: "Хэрэглэгчийн мэдээлэл буруу байна. Дахин нэвтэрнэ үү",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:8000/user/", {
         method: "POST",
@@ -250,6 +305,7 @@ const EditProperty = () => {
         body: JSON.stringify({
           action: "delete_zar",
           zar_id: id,
+          uid: uid,
         }),
       });
 

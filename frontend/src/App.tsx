@@ -7,10 +7,13 @@ import Index from "./pages/Index";
 import PropertyDetails from "./pages/PropertyDetails";
 import PostProperty from "./pages/PostProperty";
 import NotFound from "./pages/NotFound";
-import Login from "./pages/login";
-import Signup from "./pages/signup";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Forgot from "./pages/Forgot";
 import Verified from "./pages/Verified";
 import EditProperty from "./pages/PostPropertyEdit";
+import Dashboard from "./pages/Dashboard";
+import PriceEstimator from "./pages/PriceEstimator";
 
 const queryClient = new QueryClient();
 
@@ -26,8 +29,11 @@ const App = () => (
           <Route path="/post" element={<PostProperty />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<Forgot />} />
           <Route path="/verified" element={<Verified />} />
           <Route path="/property/edit/:id" element={<EditProperty />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/price-estimator" element={<PriceEstimator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

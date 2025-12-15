@@ -169,3 +169,71 @@ def dt_delete_comment(request):
     
     return JsonResponse(resp)
 
+def dt_update_comment(request):
+    """Update a comment - only owner can update"""
+    jsons = json.loads(request.body)
+    action = jsons.get('action')
+
+    comment_id = jsons.get('comment_id')
+    uid = jsons.get('uid')  # current user
+    new_text = jsons.get('comment_text', '').strip()
+
+    # Validation
+    if not comment_id or not uid or not new_text:
+        return JsonResponse(sendResponse(
+            request, 3000,
+            [{"error": "comment_id, uid, comment_text шаардлагатай"}],
+            action
+        ))
+
+    try:
+        myConn = connectDB()
+        cursor = myConn.cursor()
+
+        # 1. Check if comment exists
+        cursor.execute("SELECT uid FROM t_zar_comment WHERE comment_id = %s", (comment_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return JsonResponse(sendResponse(request, 8005, [{"error": "Сэтгэгдэл олдсонгүй"}], action))
+
+        # 2. Check ownership
+        if row[0] != uid:
+            return JsonResponse(sendResponse(
+                request, 8009,
+                [{"error": "Та энэ сэтгэгдлийг засах эрхгүй"}],
+                action
+            ))
+
+        # 3. Update comment
+        update_query = """
+            UPDATE t_zar_comment
+            SET comment_text = %s, modifieddate = NOW()
+            WHERE comment_id = %s
+            RETURNING comment_id, modifieddate;
+        """
+        cursor.execute(update_query, (new_text, comment_id))
+        result = cursor.fetchone()
+        myConn.commit()
+
+        updated_id = result[0]
+        updated_date = result[1].strftime("%Y-%m-%d %H:%M:%S") if result[1] else ""
+
+        resp = sendResponse(request, 8010, [{
+            "comment_id": updated_id,
+            "comment_text": new_text,
+            "updateddate": updated_date
+        }], action)
+
+    except Exception as e:
+        if 'myConn' in locals():
+            myConn.rollback()
+        resp = sendResponse(request, 8011, [{"error": str(e)}], action)
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'myConn' in locals():
+            disconnectDB(myConn)
+
+    return JsonResponse(resp)

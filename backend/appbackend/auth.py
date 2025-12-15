@@ -176,6 +176,57 @@ def dt_register(request):
                 pass
 
 
+# def dt_forgot(request):
+#     """Forgot password service"""
+#     jsons = json.loads(request.body)
+#     action = jsons.get('action')
+    
+#     try:
+#         uname = jsons['uname'].lower()
+#     except:
+#         action = jsons.get('action', 'forgot')
+#         respdata = []
+#         resp = sendResponse(request, 3016, respdata, action)
+#         return JsonResponse(resp)
+    
+#     try: 
+#         myConn = connectDB()
+#         cursor = myConn.cursor()
+        
+#         query = """SELECT COUNT(*) AS usercount, MIN(uname) AS uname, MIN(uid) AS uid
+#                     FROM t_user
+#                     WHERE uname = %s AND isverified = True"""
+#         cursor.execute(query, (uname,))
+#         columns = cursor.description
+#         respRow = [{columns[index][0]: column for index, 
+#             column in enumerate(value)} for value in cursor.fetchall()]
+        
+#         if respRow and len(respRow) > 0 and respRow[0]['usercount'] == 1:
+#             uid = respRow[0]['uid']
+#             uname = respRow[0]['uname']
+#             token = generateStr(25)
+#             query = """INSERT INTO t_token(uid, token, tokentype, tokenenddate, createddate) 
+#             VALUES(%s, %s, 'forgot', NOW() + interval '1 day', NOW())"""
+#             cursor.execute(query, (uid, token))
+#             myConn.commit()
+            
+#             respdata = [{"uname": uname}]
+#             resp = sendResponse(request, 3012, respdata, action)
+#         else:
+#             respdata = [{"uname": uname}]
+#             resp = sendResponse(request, 3013, respdata, action)
+#     except Exception as e:
+#         action = jsons.get("action", "forgot")
+#         respdata = [{"error": str(e)}]
+#         resp = sendResponse(request, 5003, respdata, action)
+#     finally:
+#         if 'cursor' in locals():
+#             cursor.close()
+#         if 'myConn' in locals():
+#             disconnectDB(myConn)
+#         return JsonResponse(resp)
+
+
 def dt_forgot(request):
     """Forgot password service"""
     jsons = json.loads(request.body)
@@ -205,10 +256,26 @@ def dt_forgot(request):
             uid = respRow[0]['uid']
             uname = respRow[0]['uname']
             token = generateStr(25)
+
+            # Insert token
             query = """INSERT INTO t_token(uid, token, tokentype, tokenenddate, createddate) 
             VALUES(%s, %s, 'forgot', NOW() + interval '1 day', NOW())"""
             cursor.execute(query, (uid, token))
             myConn.commit()
+
+            # ⭐ SEND EMAIL HERE ⭐
+            send_mail(
+                subject="Нууц үг сэргээх",
+                message="Та нууц үгээ шинэчлэх бол холбоос дээр дарна уу.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[uname],
+                fail_silently=False,
+                html_message=f"""
+                    <a target='_blank' href="http://localhost:8080/reset?token={token}">
+                        Нууц үг шинэчлэх
+                    </a>
+                """
+            )
             
             respdata = [{"uname": uname}]
             resp = sendResponse(request, 3012, respdata, action)

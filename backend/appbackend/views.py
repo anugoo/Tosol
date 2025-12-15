@@ -67,6 +67,8 @@ def checkService(request):
             return comments.dt_get_comments(request)
         elif action == "delete_comment":
             return comments.dt_delete_comment(request)
+        elif action == "update_comment":
+            return comments.dt_update_comment(request)
         
         # ML Price estimation
         elif action == "estimate_price":

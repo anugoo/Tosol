@@ -16,6 +16,9 @@ import Dashboard from "./pages/Dashboard";
 import PriceEstimator from "./pages/PriceEstimator";
 import Liked from "./pages/Liked";
 import Leaderboard from "./pages/Leaderboard";
+import ResetPassword from "./pages/Reset";
+
+
 
 const queryClient = new QueryClient();
 
@@ -38,6 +41,7 @@ const App = () => (
           <Route path="/price-estimator" element={<PriceEstimator />} />
           <Route path="/liked" element={<Liked />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/reset" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

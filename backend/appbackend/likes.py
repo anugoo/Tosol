@@ -25,6 +25,7 @@ def dt_toggle_like(request):
         query = "SELECT like_id FROM t_zar_likes WHERE zarid = %s AND uid = %s"
         cursor.execute(query, (zar_id, uid))
         existing_like = cursor.fetchone()
+        print(f"DEBUG: Checking like for zar_id={zar_id}, uid={uid}, existing_like={existing_like}")
 
         if existing_like:
             # Unlike: remove the like
@@ -42,7 +43,8 @@ def dt_toggle_like(request):
         # Get updated likes count
         query = "SELECT COUNT(*) as likes_count FROM t_zar_likes WHERE zarid = %s"
         cursor.execute(query, (zar_id,))
-        likes_count = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        likes_count = result[0] if result else 0
 
         respdata = [{
             "action": action_result,
@@ -86,7 +88,8 @@ def dt_get_likes_count(request):
 
         query = "SELECT COUNT(*) as likes_count FROM t_zar_likes WHERE zarid = %s"
         cursor.execute(query, (zar_id,))
-        likes_count = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        likes_count = result[0] if result else 0
 
         respdata = [{"likes_count": likes_count, "zar_id": zar_id}]
         resp = sendResponse(request, 9003, respdata, action)
@@ -119,80 +122,89 @@ def dt_get_user_likes(request):
         return JsonResponse(sendResponse(request, 3000, [{"error": "uid шаардлагатай"}], action))
 
     try:
+        uid = int(uid)
+    except:
+        return JsonResponse(sendResponse(request, 3000, [{"error": "uid буруу форматтай"}], action))
+
+    try:
         myConn = connectDB()
         cursor = myConn.cursor()
 
+        # check if user has likes
+        cursor.execute("SELECT COUNT(*) FROM t_zar_likes WHERE uid = %s", (uid,))
+        count = cursor.fetchone()[0]
+
+        if count == 0:
+            return JsonResponse(sendResponse(request, 9005, [], action))
+
+        # main query + images
         query = """
-            SELECT
-                z.zid,
-                z.z_title,
-                z.z_price,
-                z.z_address,
-                d.dname AS district_name,
-                h.hname AS hot_name,
-                z.z_rooms,
-                z.z_m2,
-                z.z_createddate,
-                COALESCE(
-                    json_agg(
-                        json_build_object(
-                            'zurag_id', tz.zid,
-                            'image_path',
-                            CASE
-                                WHEN tz.zurag LIKE 'data:image%' THEN tz.zurag
-                                ELSE CONCAT('data:image/jpeg;base64,', tz.zurag)
-                            END
-                        )
-                    ) FILTER (WHERE tz.zid IS NOT NULL),
-                    '[]'
-                ) AS images
-            FROM t_zar_likes l
-            INNER JOIN t_zar z ON l.zarid = z.zid
-            INNER JOIN t_hot h ON h.hid = z.z_hot
-            INNER JOIN t_duureg d ON d.did = z.z_duureg
-            LEFT JOIN t_zar_zurag tz ON z.zid = tz.zarid
-            WHERE l.uid = %s AND z.z_isactive = TRUE
-            GROUP BY z.zid, z.z_title, z.z_price, z.z_address, d.dname, h.hname, z.z_rooms, z.z_m2, z.z_createddate
-            ORDER BY l.createddate DESC
+        SELECT 
+            z.zid,
+            z.z_title,
+            z.z_price,
+            z.z_address,
+            d.dname AS district_name,
+            h.hname AS hot_name,
+            z.z_rooms,
+            z.z_m2,
+            z.z_createddate,
+            l.createddate AS likeddate,
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'zurag_id', tz.zid,
+                        'image_path', tz.zurag
+                    )
+                ) FILTER (WHERE tz.zid IS NOT NULL),
+                '[]'
+            ) AS images
+        FROM t_zar_likes l
+        INNER JOIN t_zar z ON l.zarid = z.zid
+        INNER JOIN t_hot h ON h.hid = z.z_hot
+        INNER JOIN t_duureg d ON d.did = z.z_duureg
+        LEFT JOIN t_zar_zurag tz ON tz.zarid = z.zid
+        WHERE l.uid = %s AND z.z_isactive = TRUE
+        GROUP BY 
+            z.zid, z.z_title, z.z_price, z.z_address, d.dname,
+            h.hname, z.z_rooms, z.z_m2, z.z_createddate, l.createddate
+        ORDER BY l.createddate DESC;
         """
 
         cursor.execute(query, (uid,))
+        rows = cursor.fetchall()
         columns = [col[0] for col in cursor.description]
-        liked_properties = []
 
-        for row in cursor.fetchall():
-            prop_dict = dict(zip(columns, row))
-            # Safely parse images JSON
-            images = prop_dict.get('images', '[]')
+        liked_list = []
+
+        for row in rows:
+            item = dict(zip(columns, row))
+
+            # Parse images JSON
             try:
-                if isinstance(images, str):
-                    prop_dict['images'] = json.loads(images) if images else []
-                else:
-                    prop_dict['images'] = images if images else []
-            except (json.JSONDecodeError, TypeError, ValueError):
-                prop_dict['images'] = []
+                if isinstance(item["images"], str):
+                    item["images"] = json.loads(item["images"])
+            except:
+                item["images"] = []
 
-            if prop_dict.get('z_createddate'):
-                prop_dict['z_createddate'] = prop_dict['z_createddate'].strftime("%Y-%m-%d %H:%M:%S")
+            # Format date
+            if item.get("z_createddate"):
+                item["z_createddate"] = item["z_createddate"].strftime("%Y-%m-%d %H:%M:%S")
 
-            liked_properties.append(prop_dict)
+            liked_list.append(item)
 
-        resp = sendResponse(request, 9005, liked_properties, action)
+        resp = sendResponse(request, 9005, liked_list, action)
 
     except Exception as e:
-        respdata = [{"error": str(e)}]
-        resp = sendResponse(request, 9006, respdata, action)
+        import traceback
+        resp = sendResponse(request, 9006, [{
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }], action)
+
     finally:
-        if 'cursor' in locals():
-            try:
-                cursor.close()
-            except:
-                pass
-        if 'myConn' in locals():
-            try:
-                disconnectDB(myConn)
-            except:
-                pass
+        cursor.close()
+        disconnectDB(myConn)
 
     return JsonResponse(resp)
 

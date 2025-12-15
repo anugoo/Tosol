@@ -11,6 +11,7 @@ import {
   Mail,
   Calendar,
   LogOut,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<UserData | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [likedProperties, setLikedProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("ads");
 
@@ -122,6 +124,7 @@ const Dashboard = () => {
       if (userData.uid) {
         loadUserInfo(userData.uid);
         loadUserAds(userData.uid);
+        loadLikedAds(userData.uid);
       } else {
         navigate("/login");
       }
@@ -170,6 +173,29 @@ const Dashboard = () => {
       }
     } catch (err: any) {
       console.error("Failed to load ads:", err);
+    }
+  };
+
+  const loadLikedAds = async (uid: number) => {
+    try {
+      console.log("Loading liked ads for user:", uid);
+      const response = await sendRequest<any>(API_URL, "POST", {
+        action: "get_user_likes",
+        uid: uid,
+      });
+
+      console.log("Liked ads response:", response);
+
+      if (response.resultCode === 9005 && response.data) {
+        console.log("Setting liked properties:", response.data.length, "items");
+        setLikedProperties(response.data);
+      } else {
+        console.log("No liked ads found or API error:", response);
+        setLikedProperties([]); // Clear the list if no data
+      }
+    } catch (err: any) {
+      console.error("Failed to load liked ads:", err);
+      setLikedProperties([]); // Clear on error
     }
   };
 
@@ -371,9 +397,16 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs value={activeTab} onValueChange={(value) => {
+            setActiveTab(value);
+            // Refresh liked ads when switching to liked tab
+            if (value === "liked" && user) {
+              loadLikedAds(user.uid);
+            }
+          }} className="space-y-6">
             <TabsList>
               <TabsTrigger value="ads">Миний зарууд</TabsTrigger>
+              <TabsTrigger value="liked">Таалагдсан</TabsTrigger>
               <TabsTrigger value="profile">Профайл</TabsTrigger>
               <TabsTrigger value="password">Нууц үг солих</TabsTrigger>
             </TabsList>
@@ -438,6 +471,50 @@ const Dashboard = () => {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Liked Ads Tab */}
+            <TabsContent value="liked" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-red-500" />
+                    Таалагдсан зарууд ({likedProperties.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Танд таалагдсан бүх зарууд
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {likedProperties.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        Та одоогоор ямар ч зарыг таалагдсангүй байна
+                      </p>
+                      <Button onClick={() => navigate("/")} className="gap-2">
+                        Зар үзэх
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {likedProperties.map((property) => {
+                        const formatted = formatProperty(property);
+                        return (
+                          <div key={property.zid} className="relative">
+                            <PropertyCard {...formatted} />
+                            <div className="absolute top-2 right-2">
+                              <div className="bg-red-500 text-white rounded-full p-1">
+                                <Heart className="h-3 w-3 fill-current" />
+                              </div>
                             </div>
                           </div>
                         );

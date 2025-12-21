@@ -1,4 +1,11 @@
-import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Instagram,
+  Youtube,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,8 +23,8 @@ const Footer = () => {
               <span className="font-bold text-xl text-foreground">Гэрэ</span>
             </div>
             <p className="text-muted-foreground mb-4">
-              Монгол орны хамгийн найдвартай үл хөдлөх хөрөнгийн платформ. 
-              Та бидэнтэй хамт мөрөөдлийн гэр олоорой.
+              Монгол орны хамгийн найдвартай үл хөдлөх хөрөнгийн платформ. Та
+              бидэнтэй хамт мөрөөдлийн гэр олоорой.
             </p>
             <div className="flex space-x-3">
               <Button variant="ghost" size="sm">
@@ -32,22 +39,65 @@ const Footer = () => {
             </div>
           </div>
 
-
           <div>
             <h3 className="font-semibold text-foreground mb-4">Холбоосууд</h3>
             <ul className="space-y-2">
-              <li><a href="/about" className="text-muted-foreground hover:text-primary transition-colors">Бидний тухай</a></li>
-              <li><a href="/services" className="text-muted-foreground hover:text-primary transition-colors">Үйлчилгээ</a></li>
-              <li><a href="/agents" className="text-muted-foreground hover:text-primary transition-colors">Холбоо барих</a></li>
+              <li>
+                <a
+                  href="/about"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Бидний тухай
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/services"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Үйлчилгээ
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/agents"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Холбоо барих
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Хууль эрх зүй</h3>
+            <h3 className="font-semibold text-foreground mb-4">
+              Хууль эрх зүй
+            </h3>
             <ul className="space-y-2">
-              <li><a href="/terms" className="text-muted-foreground hover:text-primary transition-colors">Үйлчилгээний нөхцөл</a></li>
-              <li><a href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Нууцлалын бодлого</a></li>
-              <li><a href="/support" className="text-muted-foreground hover:text-primary transition-colors">Дэмжлэг</a></li>
+              <li>
+                <a
+                  href="/terms"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Үйлчилгээний нөхцөл
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/privacy"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Нууцлалын бодлого
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/support"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Дэмжлэг
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -70,12 +120,11 @@ const Footer = () => {
             </div>
 
             <div>
-              <h4 className="font-medium text-foreground mb-2">Мэдээлэл авах</h4>
+              <h4 className="font-medium text-foreground mb-2">
+                Мэдээлэл авах
+              </h4>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="И-мэйл хаяг" 
-                  className="search-input"
-                />
+                <Input placeholder="И-мэйл хаяг" className="search-input" />
                 <Button className="gold-button">
                   <Mail className="h-4 w-4" />
                 </Button>

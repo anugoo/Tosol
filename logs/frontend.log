@@ -1,0 +1,10 @@
+
+> vite_react_shadcn_ts@0.0.0 dev
+> vite
+
+
+  VITE v5.4.20  ready in 824 ms
+
+  ➜  Local:   http://localhost:8080/
+  ➜  Network: http://192.168.0.112:8080/
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`

@@ -33,11 +33,6 @@ if errorlevel 1 (
 REM Start Backend (Django)
 echo [1/3] Starting Backend (Django) on port 8000...
 cd backend
-if not exist "venv" (
-    echo Creating virtual environment...
-    python -m venv venv
-)
-call venv\Scripts\activate.bat
 start "Django Backend" cmd /c "python manage.py runserver > ..\logs\backend.log 2>&1"
 cd ..
 timeout /t 2 /nobreak >nul

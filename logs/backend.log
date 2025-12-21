@@ -1,28 +1,45 @@
 Watching for file changes with StatReloader
-Internal Server Error: /user/
-Traceback (most recent call last):
-  File "/Users/teyji/Teyji.developer/Tosol/backend/venv/lib/python3.14/site-packages/django/core/handlers/exception.py", line 55, in inner
-    response = get_response(request)
-  File "/Users/teyji/Teyji.developer/Tosol/backend/venv/lib/python3.14/site-packages/django/core/handlers/base.py", line 197, in _get_response
-    response = wrapped_callback(request, *callback_args, **callback_kwargs)
-  File "/Users/teyji/Teyji.developer/Tosol/backend/venv/lib/python3.14/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
-    return view_func(request, *args, **kwargs)
-  File "/Users/teyji/Teyji.developer/Tosol/backend/appbackend/views.py", line 47, in checkService
-    return properties.dt_getturul(request)
-           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
-  File "/Users/teyji/Teyji.developer/Tosol/backend/appbackend/properties.py", line 21, in dt_getturul
-    myConn = connectDB()
-  File "/Users/teyji/Teyji.developer/Tosol/backend/backend/settings.py", line 269, in connectDB
-    conn = psycopg2.connect (
-        host = 'localhost', #server host
-    ...<4 lines>...
-        port = '5938', # postgre port
-    )
-  File "/Users/teyji/Teyji.developer/Tosol/backend/venv/lib/python3.14/site-packages/psycopg2/__init__.py", line 122, in connect
-    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
-psycopg2.OperationalError: connection to server at "localhost" (::1), port 5938 failed: Connection refused
-	Is the server running on that host and accepting TCP/IP connections?
-connection to server at "localhost" (127.0.0.1), port 5938 failed: Connection refused
-	Is the server running on that host and accepting TCP/IP connections?
-
-[21/Dec/2025 10:26:27] "POST /user/ HTTP/1.1" 500 81145
+[21/Dec/2025 18:55:35] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:55:35] "POST /user/ HTTP/1.1" 200 1623
+[21/Dec/2025 18:55:35] "POST /user/ HTTP/1.1" 200 1470980
+[21/Dec/2025 18:56:13] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:13] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:13] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:13] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:13] "POST /user/ HTTP/1.1" 200 455
+[21/Dec/2025 18:56:13] "POST /user/ HTTP/1.1" 200 189
+[21/Dec/2025 18:56:13] "POST /user/ HTTP/1.1" 200 712307
+[21/Dec/2025 18:56:13] "POST /user/ HTTP/1.1" 200 750994
+[21/Dec/2025 18:56:20] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:20] "POST /user/ HTTP/1.1" 200 199
+[21/Dec/2025 18:56:22] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:22] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:22] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:22] "POST /user/ HTTP/1.1" 200 426
+[21/Dec/2025 18:56:22] "POST /user/ HTTP/1.1" 200 39678
+[21/Dec/2025 18:56:22] "POST /user/ HTTP/1.1" 200 730225
+[21/Dec/2025 18:56:27] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:27] "POST /user/ HTTP/1.1" 200 39678
+[21/Dec/2025 18:56:39] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:39] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:39] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:39] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:39] "POST /user/ HTTP/1.1" 200 189
+[21/Dec/2025 18:56:39] "POST /user/ HTTP/1.1" 200 464
+[21/Dec/2025 18:56:39] "POST /user/ HTTP/1.1" 200 22493
+[21/Dec/2025 18:56:39] "POST /user/ HTTP/1.1" 200 39678
+[21/Dec/2025 18:56:41] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:41] "POST /user/ HTTP/1.1" 200 199
+[21/Dec/2025 18:56:43] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:43] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:43] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:43] "POST /user/ HTTP/1.1" 200 426
+[21/Dec/2025 18:56:43] "POST /user/ HTTP/1.1" 200 17939
+[21/Dec/2025 18:56:43] "POST /user/ HTTP/1.1" 200 730225
+[21/Dec/2025 18:56:45] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:45] "POST /user/ HTTP/1.1" 200 17939
+[21/Dec/2025 18:56:54] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:56:54] "POST /user/ HTTP/1.1" 200 1623
+[21/Dec/2025 18:57:34] "OPTIONS /user/ HTTP/1.1" 200 0
+[21/Dec/2025 18:57:34] "POST /user/ HTTP/1.1" 200 302
+^C

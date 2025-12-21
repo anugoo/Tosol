@@ -19,6 +19,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
@@ -193,6 +194,21 @@ class ModelBundle:
 
 
 app = FastAPI(title="RealEstate Price Predictor", version="1.0")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
 bundles: Dict[str, ModelBundle] = {}
 
 

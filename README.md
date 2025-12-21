@@ -439,3 +439,10 @@ npm test
 ---
 
 **Тэмдэглэл**: Энэхүү README нь төслийн ерөнхий мэдээлэл агуулна. Дэлгэрэнгүй мэдээллийг тус бүрийн directory-д байрлах README файлуудаас харна уу.
+
+macOS/Linux:
+./start.sh
+windows:
+start.bat
+python:
+python start.py

@@ -23,6 +23,8 @@ import { sendRequest } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/user/";
+const MODEL_API_URL =
+  import.meta.env.VITE_MODEL_API_URL || "http://127.0.0.1:8001/predict";
 
 interface Turul {
   tid: number;
@@ -50,7 +52,10 @@ const PriceEstimator = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
-  const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null);
+  const [priceRange, setPriceRange] = useState<{
+    min: number;
+    max: number;
+  } | null>(null);
 
   // Dropdown data
   const [turul, setTurul] = useState<Turul[]>([]);
@@ -64,6 +69,7 @@ const PriceEstimator = () => {
     m2: "",
     type_id: "",
     status_id: "",
+    city_id: "",
     district_id: "",
   });
 
@@ -87,6 +93,23 @@ const PriceEstimator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Map status_id to segment (sale/rent)
+  const getSegmentFromStatus = (statusId: string): "sale" | "rent" => {
+    // status_id: 1 = Sale, 2 = Rent (based on common patterns)
+    const status = tuluv.find((t) => t.tid.toString() === statusId);
+    if (status) {
+      const statusName = status.tname.toLowerCase();
+      if (
+        statusName.includes("түрээс") ||
+        statusName.includes("rent") ||
+        statusName.includes("түрээслэх")
+      ) {
+        return "rent";
+      }
+    }
+    return "sale"; // Default to sale
+  };
+
   const handleEstimate = async () => {
     if (!formData.m2 || parseFloat(formData.m2) <= 0) {
       toast({
@@ -97,10 +120,10 @@ const PriceEstimator = () => {
       return;
     }
 
-    if (!formData.type_id || !formData.status_id) {
+    if (!formData.status_id) {
       toast({
         title: "Алдаа",
-        description: "Төрөл болон төлөвийг сонгоно уу",
+        description: "Төлөвийг сонгоно уу",
         variant: "destructive",
       });
       return;
@@ -108,34 +131,58 @@ const PriceEstimator = () => {
 
     setLoading(true);
     try {
-      const response = await sendRequest<any>(API_URL, "POST", {
-        action: "estimate_price",
-        rooms: parseInt(formData.rooms) || 0,
-        m2: parseFloat(formData.m2),
-        district_id: parseInt(formData.district_id) || 0,
-        type_id: parseInt(formData.type_id),
-        status_id: parseInt(formData.status_id),
+      // Get city and district names from IDs
+      const selectedCity = cities.find(
+        (c) => c.hid.toString() === formData.city_id
+      );
+      const selectedDistrict = districts.find(
+        (d) => d.did.toString() === formData.district_id
+      );
+
+      const cityName = selectedCity?.hname || "Улаанбаатар";
+      const districtName = selectedDistrict?.dname || "Хан-Уул";
+      const segment = getSegmentFromStatus(formData.status_id);
+      const roomCount = parseFloat(formData.rooms) || 0;
+      const squareM2 = parseFloat(formData.m2);
+
+      // Call Model API
+      const response = await fetch(MODEL_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          segment: segment,
+          room_count: roomCount,
+          square_m2: squareM2,
+          city: cityName,
+          district: districtName,
+          has_detailed_location: selectedDistrict ? 1 : 0,
+        }),
       });
 
-      if (response.resultCode === 9002 && response.data?.[0]) {
-        const data = response.data[0];
-        setEstimatedPrice(data.estimated_price);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.prediction_mnt) {
+        setEstimatedPrice(data.prediction_mnt);
         setPriceRange({
-          min: data.min_price,
-          max: data.max_price,
+          min: data.range_mnt.low,
+          max: data.range_mnt.high,
         });
         toast({
           title: "Амжилттай!",
           description: "Үнэ тооцоолол хийгдлээ",
         });
       } else {
-        toast({
-          title: "Алдаа",
-          description: response.resultMessage || "Үнэ тооцоолоход алдаа гарлаа",
-          variant: "destructive",
-        });
+        throw new Error(data.detail || "Үнэ тооцоолоход алдаа гарлаа");
       }
     } catch (err: any) {
+      console.error("Price estimation error:", err);
       toast({
         title: "Алдаа",
         description: err.message || "Сервертэй холбогдоход алдаа гарлаа",
@@ -157,7 +204,8 @@ const PriceEstimator = () => {
               <h1 className="text-4xl font-bold">Үнэ тооцоолуур</h1>
             </div>
             <p className="text-muted-foreground text-lg">
-              Машин сургалтын алгоритм ашиглан үл хөдлөх хөрөнгийн үнийг тооцоолох
+              Машин сургалтын алгоритм ашиглан үл хөдлөх хөрөнгийн үнийг
+              тооцоолох
             </p>
           </div>
 
@@ -251,15 +299,13 @@ const PriceEstimator = () => {
                     <div className="space-y-2">
                       <Label htmlFor="city">Хот/Аймаг</Label>
                       <Select
-                        value={
-                          formData.district_id
-                            ? districts.find(
-                                (d) => d.did.toString() === formData.district_id
-                              )?.hid.toString() || ""
-                            : ""
-                        }
+                        value={formData.city_id}
                         onValueChange={(value) => {
-                          setFormData({ ...formData, district_id: "" });
+                          setFormData({
+                            ...formData,
+                            city_id: value,
+                            district_id: "",
+                          });
                         }}
                       >
                         <SelectTrigger>
@@ -282,30 +328,16 @@ const PriceEstimator = () => {
                         onValueChange={(value) =>
                           setFormData({ ...formData, district_id: value })
                         }
-                        disabled={!formData.district_id && !cities.length}
+                        disabled={!formData.city_id}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Дүүрэг сонгох" />
                         </SelectTrigger>
                         <SelectContent>
                           {districts
-                            .filter((d) => {
-                              const selectedCity = cities.find(
-                                (c) =>
-                                  c.hid.toString() ===
-                                  (formData.district_id
-                                    ? districts
-                                        .find(
-                                          (dd) =>
-                                            dd.did.toString() === formData.district_id
-                                        )
-                                        ?.hid.toString() || ""
-                                    : "")
-                              );
-                              return selectedCity
-                                ? d.hid === selectedCity.hid
-                                : true;
-                            })
+                            .filter(
+                              (d) => d.hid.toString() === formData.city_id
+                            )
                             .map((d) => (
                               <SelectItem key={d.did} value={d.did.toString()}>
                                 {d.dname}
@@ -345,26 +377,26 @@ const PriceEstimator = () => {
                           Тооцоолсон үнэ
                         </p>
                         <p className="text-3xl font-bold text-primary">
-                          {estimatedPrice.toLocaleString()}₮
+                          {Math.round(estimatedPrice).toLocaleString()}₮
                         </p>
                       </div>
 
                       {priceRange && (
                         <div className="space-y-2 pt-4 border-t">
                           <p className="text-sm text-muted-foreground">
-                            Үнийн хүрээ (±20%)
+                            Үнийн хүрээ
                           </p>
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
                               <span>Хамгийн бага:</span>
                               <span className="font-semibold">
-                                {priceRange.min.toLocaleString()}₮
+                                {Math.round(priceRange.min).toLocaleString()}₮
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Хамгийн их:</span>
                               <span className="font-semibold">
-                                {priceRange.max.toLocaleString()}₮
+                                {Math.round(priceRange.max).toLocaleString()}₮
                               </span>
                             </div>
                           </div>
@@ -373,8 +405,8 @@ const PriceEstimator = () => {
 
                       <div className="pt-4 border-t">
                         <p className="text-xs text-muted-foreground">
-                          * Энэ үнэ нь тооцоолол бөгөөд бодит үнэтэй ялгаатай байж
-                          болно. Зөвхөн лавлагааны зориулалттай.
+                          * Энэ үнэ нь тооцоолол бөгөөд бодит үнэтэй ялгаатай
+                          байж болно. Зөвхөн лавлагааны зориулалттай.
                         </p>
                       </div>
                     </div>
@@ -398,4 +430,3 @@ const PriceEstimator = () => {
 };
 
 export default PriceEstimator;
-

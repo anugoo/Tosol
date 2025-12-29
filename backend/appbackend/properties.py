@@ -58,14 +58,27 @@ def dt_getzar(request):
     """Get all active properties with pagination"""
     jsons = json.loads(request.body)
     action = jsons.get('action')
-    page = int(jsons.get('page', 1))
-    limit = int(jsons.get('limit', 9))
+    page = max(1, int(jsons.get('page', 1)))
+    limit = max(1, int(jsons.get('limit', 9)))
     offset = (page - 1) * limit
 
     try:
         myConn = connectDB()
         cursor = myConn.cursor()
 
+        # Нийт зарын тоог тоолох
+        count_query = """
+        SELECT COUNT(DISTINCT z.zid)
+        FROM t_zar z
+        WHERE z.z_isactive = TRUE
+        """
+        cursor.execute(count_query)
+        total = cursor.fetchone()[0]
+
+        # Total pages тооцоолох
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+
+        # Заруудыг авах query
         query = """
         SELECT 
             z.zid,
@@ -125,7 +138,19 @@ def dt_getzar(request):
                 zar_dict['images'] = []
             zar_list.append(zar_dict)
 
-        resp = sendResponse(request, 7005, zar_list, action)
+        # Pagination мэдээлэлтэй response буцаах
+        resp_data = {
+            "items": zar_list,
+            "pagination": {
+                "page": page,
+                "per_page": limit,
+                "total": total,
+                "total_pages": total_pages,
+                "has_next": page < total_pages
+            }
+        }
+
+        resp = sendResponse(request, 7005, resp_data, action)
 
     except Exception as e:
         import traceback
@@ -666,7 +691,6 @@ def dt_search_zar(request):
             per_page = max(1, int(payload.get("per_page", 12)))
         except ValueError:
             return JsonResponse(sendResponse(request, 3002, {"error": "Invalid pagination parameters"}, action))
-        offset = (page - 1) * per_page
 
         # DB холболт
         myConn = connectDB()
@@ -705,7 +729,12 @@ def dt_search_zar(request):
 
         cursor.execute(count_sql, params)
         total = cursor.fetchone()[0]
-        total_pages = (total + per_page - 1) // per_page
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+        
+        # Page-ийг total_pages-ээс ихгүй байх болгох
+        if page > total_pages:
+            page = total_pages
+        offset = (page - 1) * per_page
 
         # 🔹 Main query
         sql = """
@@ -786,5 +815,3 @@ def dt_search_zar(request):
             cursor.close()
         if 'myConn' in locals():
             disconnectDB(myConn)
-
-

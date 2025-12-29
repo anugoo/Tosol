@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 import PropertyCard from "./PropertyCard";
 import { sendRequest } from "@/utils/api";
 import { useSearch } from "@/context/SearchContext";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface ZarImage {
   zurag_id: number;
@@ -54,20 +63,19 @@ const PropertyListings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const isSearchMode = Object.keys(searchParams).length > 0;
 
   useEffect(() => {
     const fetchProperties = async () => {
-      if (!hasMore && page > 1) return;
-
       try {
-        setLoading(page === 1);
+        setLoading(true);
 
         const payload: any = isSearchMode
-          ? { action: "search_zar", page, per_page: 9, ...searchParams }
-          : { action: "getzar", page, limit: 9 };
+          ? { action: "search_zar", page, per_page: 2, ...searchParams }
+          : { action: "getzar", page, limit: 2 };
 
         const response = await sendRequest<any>(API_URL, "POST", payload);
 
@@ -76,30 +84,31 @@ const PropertyListings = () => {
           (response.resultCode === 7005 || response.resultCode === 7014) &&
           (response.data || response.data?.items)
         ) {
-          const rawItems = isSearchMode
-            ? Array.isArray(response.data)
-              ? response.data
-              : Array.isArray(response.data?.items)
-              ? response.data.items
-              : []
+          // Backend-ээс ирэх формат: { items: [...], pagination: {...} }
+          const rawItems = Array.isArray(response.data?.items)
+            ? response.data.items
             : Array.isArray(response.data)
             ? response.data
             : [];
 
           if (rawItems.length === 0 && page === 1) {
             setProperties([]);
-            setHasMore(false);
+            setTotalPages(1);
+            setTotalItems(0);
             setLoading(false);
             return;
           }
 
           const formatted = rawItems.map((item: any): FormattedProperty => {
-            // search_zar-аас ирэх үед
-            if (isSearchMode || item.cover) {
+            // search_zar-аас ирэх үед (item.cover байна)
+            if (isSearchMode) {
               const priceNum = Number(item.price || item.z_price || 0);
               const status = (searchParams.status || "").toString();
-              const isRent = status === "2" || /түрээс|rent/i.test(item.status_name || "");
-              const isPreorder = status === "3" || /урьдчилсан|preorder/i.test(item.status_name || "");
+              const isRent =
+                status === "2" || /түрээс|rent/i.test(item.status_name || "");
+              const isPreorder =
+                status === "3" ||
+                /урьдчилсан|preorder/i.test(item.status_name || "");
 
               return {
                 id: String(item.zid || item.id),
@@ -114,7 +123,9 @@ const PropertyListings = () => {
                   : isPreorder
                   ? `${priceNum.toLocaleString()}₮/м²`
                   : `${priceNum.toLocaleString()}₮`,
-                location: `${item.city || item.hot_name || ""} • ${item.district || item.district_name || ""}`,
+                location: `${item.city || item.hot_name || ""} • ${
+                  item.district || item.district_name || ""
+                }`,
                 beds: Number(item.rooms || item.z_rooms || 0),
                 baths: Number(item.z_bathroom || 1),
                 area: `${item.m2 || item.z_m2 || 0} м²`,
@@ -127,7 +138,11 @@ const PropertyListings = () => {
             const status = (p.status_name || "").toLowerCase();
             const isRent = /түрээс|rent/i.test(status);
             const isPreorder = /урьдчилсан|preorder/i.test(status);
-            const type: "sale" | "rent" | "preorder" = isRent ? "rent" : isPreorder ? "preorder" : "sale";
+            const type: "sale" | "rent" | "preorder" = isRent
+              ? "rent"
+              : isPreorder
+              ? "preorder"
+              : "sale";
 
             const priceNum = Number(p.z_price) || 0;
             const price = isRent
@@ -142,14 +157,18 @@ const PropertyListings = () => {
             else if (/^[A-Za-z0-9+/=]+$/.test(img.slice(0, 100)))
               image = `data:image/jpeg;base64,${img}`;
             else if (img)
-              image = `${import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000"}${img}`;
+              image = `${
+                import.meta.env.VITE_MEDIA_URL || "http://127.0.0.1:8000"
+              }${img}`;
 
             return {
               id: p.zid.toString(),
               image,
               title: p.z_title,
               price,
-              location: `${p.district_name}${p.z_address ? ", " + p.z_address : ""}`,
+              location: `${p.district_name}${
+                p.z_address ? ", " + p.z_address : ""
+              }`,
               beds: p.z_rooms || 0,
               baths: p.z_bathroom || 0,
               area: `${p.z_m2} м²`,
@@ -157,22 +176,33 @@ const PropertyListings = () => {
             };
           });
 
-          setProperties((prev) => (page === 1 ? formatted : [...prev, ...formatted]));
-          // Pagination-ийн has_next-ийг backend-аас авна
-          if (isSearchMode && response.data.pagination) {
-            setHasMore(response.data.pagination.has_next);
+          setProperties(formatted);
+
+          // Pagination мэдээлэл тохируулах
+          // Одоо getzar болон search_zar хоёулаа pagination мэдээлэл буцааж байна
+          if (response.data?.pagination) {
+            const pagination = response.data.pagination;
+            setTotalPages(pagination.total_pages || 1);
+            setTotalItems(pagination.total || formatted.length);
           } else {
-            setHasMore(rawItems.length >= 9);
+            // Хэрэв pagination мэдээлэл байхгүй бол тооцоолох
+            if (rawItems.length < 2) {
+              setTotalPages(page);
+            } else {
+              setTotalPages(page + 1);
+            }
+            setTotalItems((page - 1) * 2 + formatted.length);
           }
         } else {
-          if (page === 1) {
-            setProperties([]);
-            setHasMore(false);
-          }
+          setProperties([]);
+          setTotalPages(1);
+          setTotalItems(0);
         }
       } catch (err: any) {
         console.error("Fetch error:", err);
         if (page === 1) setError("Сервертэй холбогдоход алдаа гарлаа");
+        setProperties([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
@@ -181,8 +211,51 @@ const PropertyListings = () => {
     fetchProperties();
   }, [page, lastTrigger, searchParams, isSearchMode]);
 
-  const loadMore = () => {
-    if (hasMore && !loading) setPage((p) => p + 1);
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && !loading) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const renderPaginationNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      // Бүх хуудсыг харуулах
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Эхний хуудас
+      pages.push(1);
+
+      if (page <= 3) {
+        // Эхний хэсэг
+        for (let i = 2; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("ellipsis");
+        pages.push(totalPages);
+      } else if (page >= totalPages - 2) {
+        // Сүүлийн хэсэг
+        pages.push("ellipsis");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // Дунд хэсэг
+        pages.push("ellipsis");
+        for (let i = page - 1; i <= page + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("ellipsis");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
   };
 
   return (
@@ -193,7 +266,13 @@ const PropertyListings = () => {
             <h2 className="text-3xl font-bold text-foreground mb-2">
               {isSearchMode ? "Хайлтын үр дүн" : "Шинэ зарууд"}
             </h2>
-            <p className="text-muted-foreground">{properties.length} үл хөдлөх хөрөнгө олдлоо</p>
+            <p className="text-muted-foreground">
+              {totalItems > 0
+                ? `${totalItems} үл хөдлөх хөрөнгө олдлоо`
+                : properties.length > 0
+                ? `${properties.length} үл хөдлөх хөрөнгө олдлоо`
+                : "Зар олдсонгүй"}
+            </p>
           </div>
 
           <div className="flex items-center gap-3 mt-4 md:mt-0">
@@ -233,11 +312,72 @@ const PropertyListings = () => {
           ))}
         </div>
 
-        {hasMore && (
-          <div className="text-center mt-12">
-            <Button onClick={loadMore} disabled={loading} variant="outline" size="lg" className="px-8">
-              {loading ? "Ачаалж байна..." : "Илүү олон зар харах"}
-            </Button>
+        {totalPages > 1 && (
+          <div className="mt-12 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(page - 1);
+                    }}
+                    className={
+                      page <= 1 || loading
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+
+                {renderPaginationNumbers().map((pageNum, index) => {
+                  if (pageNum === "ellipsis") {
+                    return (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+
+                  const pageNumber = pageNum as number;
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pageNumber);
+                        }}
+                        isActive={page === pageNumber}
+                        className={
+                          loading
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(page + 1);
+                    }}
+                    className={
+                      page >= totalPages || loading
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
 

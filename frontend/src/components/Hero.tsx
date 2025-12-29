@@ -1,4 +1,3 @@
-// src/components/Hero.tsx
 import { Search, MapPin, Home, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSearch } from "@/context/SearchContext"; // ← НЭМНЭ
+import { useSearch } from "@/context/SearchContext";
 import heroImage from "@/assets/hero-bg.jpg";
 
 interface Turul { tid: number; tname: string; temoji?: string; }
@@ -20,13 +19,14 @@ interface District { did: number; dname: string; hid: number; }
 
 const Hero = () => {
   const navigate = useNavigate();
-  const { setSearchParams, triggerSearch } = useSearch(); // ← АВАХ
+  const { setSearchParams, triggerSearch } = useSearch();
 
   const [searchType, setSearchType] = useState<"sale" | "rent" | "preorder">("sale");
   const [turulList, setTurulList] = useState<Turul[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
 
+  const [propertyNameSearchText, setPropertyNameSearchText] = useState(""); // ← Нэрээр хайх state
   const [propertyType, setPropertyType] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
@@ -58,6 +58,7 @@ const Hero = () => {
     if (searchType === "rent") params.status = "2";
     if (searchType === "preorder") params.status = "3";
 
+    if (propertyNameSearchText) params.title = propertyNameSearchText; // ← Нэрээр хайх дамжуулж байна
     if (propertyType) params.type = propertyType;
     if (city) params.hot = city;
     if (district) params.duureg = district;
@@ -67,7 +68,7 @@ const Hero = () => {
     if (endDate) params.to = endDate;
 
     setSearchParams(params);
-    triggerSearch(); // ← PropertyListings дахин ачаална!
+    triggerSearch();
   };
 
   return (
@@ -84,7 +85,20 @@ const Hero = () => {
           Монголын хамгийн том үл хөдлөх хөрөнгийн платформоос өөрт тохирох орон сууц, байшинг хайж олоорой
         </p>
 
-        <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-5xl mx-auto">
+        <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-5xl mx-auto space-y-4">
+          {/* 🔹 Нэрээр хайх input */}
+          
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Зарын нэрээр хайх"
+              value={propertyNameSearchText}
+              onChange={e => setPropertyNameSearchText(e.target.value)}
+              className="h-12 pl-12 border-0 bg-accent/30 rounded-xl placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
           <div className="flex gap-2 mb-6 p-1 bg-accent/30 rounded-xl">
             {["sale", "rent", "preorder"].map(t => (
               <button
@@ -97,6 +111,7 @@ const Hero = () => {
             ))}
           </div>
 
+          {/* 🔹 Select талбарууд */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <Select value={propertyType} onValueChange={setPropertyType}>
               <SelectTrigger className="h-12 border-0 bg-accent/30 rounded-xl">
@@ -135,6 +150,7 @@ const Hero = () => {
             </Select>
           </div>
 
+          {/* 🔹 Огноо, үнэ */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 border-0 bg-accent/30 rounded-xl" />
             <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 border-0 bg-accent/30 rounded-xl" />
@@ -150,22 +166,6 @@ const Hero = () => {
               <Search className="mr-2 h-5 w-5" /> Хайх
             </Button>
           </div>
-
-          <div className="flex flex-wrap gap-3 justify-center">
-            {turulList.slice(0, 5).map(t => (
-              <Button key={t.tid} variant="ghost" size="sm" className="rounded-full hover:bg-accent/50"
-                onClick={() => { setPropertyType(t.tid.toString()); handleSearch(); }}>
-                {t.temoji} {t.tname}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8">
-          <Button variant="outline" size="lg" onClick={() => navigate("/post")}
-            className="text-lg px-8 py-4 rounded-2xl bg-white/10 border-white text-white hover:bg-white hover:text-primary transition-all">
-            Шинэ зар оруулах
-          </Button>
         </div>
       </div>
     </section>

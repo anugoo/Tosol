@@ -143,7 +143,7 @@ python predict_service.py --segment rent --room-count 2 --square-m2 45 --city У
 
 - `panz.mn` — JSON API ашиглан зарууд татаж авсан
 - `my-zar.mn` — HTML parsing ашиглан зарууд татаж авсан
-- `osdata.csv` — хуучин (2021 орчим) өгөгдөл (schema өөр)
+- `osdata.csv` — хуучин (2025 орчим) өгөгдөл (schema өөр)
 
 Дараах асуудлууд гарсан:
 

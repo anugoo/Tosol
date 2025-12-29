@@ -363,12 +363,25 @@ const PostProperty = () => {
                 </div>
               </CardContent>
             </Card>
+            <div className="pt-4 flex gap-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate("/")}
+              >
+                Буцах
+              </Button>
 
-            <div className="flex justify-end">
-              <Button type="submit" size="lg" disabled={isUploading}>
+              <Button
+                type="submit"
+                size="lg"
+                className="flex-1"
+                disabled={isUploading}
+              >
                 {isUploading ? "Илгээж байна..." : "Зар нийтлэх"}
               </Button>
             </div>
+
           </form>
         </div>
       </main>

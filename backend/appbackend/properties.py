@@ -160,89 +160,89 @@ def dt_getzarbyid(request):
         cursor = myConn.cursor()
 
         query = f"""
-SELECT
-    z.zid,
-    z.uid,
-    u.uname AS user_email,
-    u.phone AS user_phone,
-    z.z_title,
-    z.z_type,
-    z.z_status,
-    z.z_hot,
-    z.z_duureg,
-    z.z_hiits,
-    t.tid AS type_id,
-    tu.tid AS status_id,
-    t.tname AS type_name,
-    tu.tname AS status_name,
-    z.z_price,
-    h.hname AS hot_name,
-    h.hid AS hot_id,
-    d.dname AS district_name,
-    d.did AS district_id,
-    z.z_address,
-    z.z_rooms,
-    z.z_bathroom,
-    z.z_balcony,
-    z.z_m2,
-    z.z_floor,
-    hi.h_name AS hiits_name,
-    hi.h_id AS hiits_id,
-    z.z_description,
-    z.z_isactive,
-    COALESCE(
-        json_agg(
-            json_build_object(
-                'zurag_id', tz.zid,
-                'image_path',
-                CASE
-                    WHEN tz.zurag LIKE 'data:image%' THEN tz.zurag
-                    ELSE CONCAT('data:image/jpeg;base64,', tz.zurag)
-                END
-            )
-        ) FILTER (WHERE tz.zid IS NOT NULL),
-        '[]'
-    ) AS images
-FROM t_zar z
-INNER JOIN t_user u ON z.uid = u.uid
-INNER JOIN t_turul t ON z.z_type = t.tid
-INNER JOIN t_tuluv tu ON z.z_status = tu.tid
-INNER JOIN t_hot h ON h.hid = z.z_hot
-INNER JOIN t_duureg d ON z.z_duureg = d.did
-INNER JOIN t_hiits hi ON hi.h_id = z.z_hiits
-LEFT JOIN t_zar_zurag tz ON z.zid = tz.zarid
-WHERE z.zid = {zid}
-GROUP BY
-    z.zid, 
-    z.uid, 
-    u.uname, 
-    u.phone,
-    z.z_title,
-    z.z_type,          -- ЭНД
-    z.z_status,        -- ЭНД
-    z.z_hot,           -- ЭНД
-    z.z_duureg,        -- ЭНД
-    z.z_hiits,         -- ЭНД
-    t.tid, 
-    tu.tid, 
-    t.tname, 
-    tu.tname, 
-    z.z_price,
-    h.hname, 
-    h.hid, 
-    d.dname, 
-    d.did, 
-    z.z_address, 
-    z.z_rooms, 
-    z.z_bathroom, 
-    z.z_balcony,
-    z.z_m2, 
-    z.z_floor, 
-    hi.h_name, 
-    hi.h_id, 
-    z.z_description, 
-    z.z_isactive;
-        """
+        SELECT
+            z.zid,
+            z.uid,
+            u.uname AS user_email,
+            u.phone AS user_phone,
+            z.z_title,
+            z.z_type,
+            z.z_status,
+            z.z_hot,
+            z.z_duureg,
+            z.z_hiits,
+            t.tid AS type_id,
+            tu.tid AS status_id,
+            t.tname AS type_name,
+            tu.tname AS status_name,
+            z.z_price,
+            h.hname AS hot_name,
+            h.hid AS hot_id,
+            d.dname AS district_name,
+            d.did AS district_id,
+            z.z_address,
+            z.z_rooms,
+            z.z_bathroom,
+            z.z_balcony,
+            z.z_m2,
+            z.z_floor,
+            hi.h_name AS hiits_name,
+            hi.h_id AS hiits_id,
+            z.z_description,
+            z.z_isactive,
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'zurag_id', tz.zid,
+                        'image_path',
+                        CASE
+                            WHEN tz.zurag LIKE 'data:image%' THEN tz.zurag
+                            ELSE CONCAT('data:image/jpeg;base64,', tz.zurag)
+                        END
+                    )
+                ) FILTER (WHERE tz.zid IS NOT NULL),
+                '[]'
+            ) AS images
+        FROM t_zar z
+        INNER JOIN t_user u ON z.uid = u.uid
+        INNER JOIN t_turul t ON z.z_type = t.tid
+        INNER JOIN t_tuluv tu ON z.z_status = tu.tid
+        INNER JOIN t_hot h ON h.hid = z.z_hot
+        INNER JOIN t_duureg d ON z.z_duureg = d.did
+        INNER JOIN t_hiits hi ON hi.h_id = z.z_hiits
+        LEFT JOIN t_zar_zurag tz ON z.zid = tz.zarid
+        WHERE z.zid = {zid}
+        GROUP BY
+            z.zid, 
+            z.uid, 
+            u.uname, 
+            u.phone,
+            z.z_title,
+            z.z_type,          -- ЭНД
+            z.z_status,        -- ЭНД
+            z.z_hot,           -- ЭНД
+            z.z_duureg,        -- ЭНД
+            z.z_hiits,         -- ЭНД
+            t.tid, 
+            tu.tid, 
+            t.tname, 
+            tu.tname, 
+            z.z_price,
+            h.hname, 
+            h.hid, 
+            d.dname, 
+            d.did, 
+            z.z_address, 
+            z.z_rooms, 
+            z.z_bathroom, 
+            z.z_balcony,
+            z.z_m2, 
+            z.z_floor, 
+            hi.h_name, 
+            hi.h_id, 
+            z.z_description, 
+            z.z_isactive;
+                """
 
         cursor.execute(query)
         columns = [col[0] for col in cursor.description]
@@ -634,9 +634,11 @@ def dt_delete_zar(request):
     return JsonResponse(resp)
 
 
+
 def dt_search_zar(request):
-    """Search properties with filters and pagination"""
+    """Search properties with all filters, including title, with pagination"""
     try:
+        # JSON payload авах
         if request.content_type == "application/json":
             payload = json.loads(request.body)
         else:
@@ -646,6 +648,7 @@ def dt_search_zar(request):
         if action != "search_zar":
             return JsonResponse(sendResponse(request, 3001, {"error": "Invalid action"}, action))
 
+        # 🔹 Filter-үүд авах
         status = payload.get("status")
         type_id = payload.get("type")
         hot = payload.get("hot")
@@ -654,18 +657,22 @@ def dt_search_zar(request):
         max_price = payload.get("max")
         from_date = payload.get("from")
         to_date = payload.get("to")
+        title = payload.get("title", "").strip()
+        title1 = payload.get("title", "").strip()  # 🔹 Нэрээр хайх
 
+        # Pagination
         try:
             page = max(1, int(payload.get("page", 1)))
             per_page = max(1, int(payload.get("per_page", 12)))
         except ValueError:
             return JsonResponse(sendResponse(request, 3002, {"error": "Invalid pagination parameters"}, action))
-
         offset = (page - 1) * per_page
 
+        # DB холболт
         myConn = connectDB()
         cursor = myConn.cursor()
 
+        # 🔹 Count query
         count_sql = "SELECT COUNT(*) FROM t_zar WHERE z_isactive = TRUE"
         params = []
         if status:
@@ -692,20 +699,26 @@ def dt_search_zar(request):
         if to_date:
             count_sql += " AND z_createddate <= %s"
             params.append(to_date)
+        if title:
+            count_sql += " AND z_title LIKE %s"
+            params.append(f"%{title}%")
 
         cursor.execute(count_sql, params)
         total = cursor.fetchone()[0]
         total_pages = (total + per_page - 1) // per_page
 
+        # 🔹 Main query
         sql = """
             SELECT 
-                zid, z_title, z_price, z_m2, z_rooms, z_address, z_createddate,
+                zid, z_title, z_price, z_m2, z_rooms, z_bathroom, z_address, z_createddate,
                 (SELECT hname FROM t_hot WHERE hid = t_zar.z_hot) as city_name,
                 (SELECT dname FROM t_duureg WHERE did = t_zar.z_duureg) as district_name,
-                (SELECT zurag FROM t_zar_zurag WHERE zarid = t_zar.zid ORDER BY zid LIMIT 1) as cover
+                (SELECT zurag FROM t_zar_zurag WHERE zarid = t_zar.zid ORDER BY zid LIMIT 1) as cover,
+                z_status, z_type
             FROM t_zar 
             WHERE z_isactive = TRUE
         """
+        # 🔹 Filters нэмэх
         if status:
             sql += " AND z_status = %s"
         if type_id:
@@ -722,6 +735,9 @@ def dt_search_zar(request):
             sql += " AND z_createddate >= %s"
         if to_date:
             sql += " AND z_createddate <= %s"
+        if title:
+            sql += " AND z_title LIKE %s"
+        
 
         sql += " ORDER BY z_createddate DESC LIMIT %s OFFSET %s"
         params.extend([per_page, offset])
@@ -729,6 +745,7 @@ def dt_search_zar(request):
         cursor.execute(sql, params)
         rows = cursor.fetchall()
 
+        # 🔹 Result format
         result = []
         for r in rows:
             result.append({
@@ -737,11 +754,14 @@ def dt_search_zar(request):
                 "price": str(r[2]),
                 "m2": r[3] or 0,
                 "rooms": r[4] or 0,
-                "address": r[5] or "",
-                "created": r[6].strftime("%Y-%m-%d") if r[6] else "",
-                "city": r[7] or "",
-                "district": r[8] or "",
-                "cover": r[9] or "/media/default.jpg"
+                "baths": r[5] or 0,
+                "address": r[6] or "",
+                "created": r[7].strftime("%Y-%m-%d") if r[7] else "",
+                "city": r[8] or "",
+                "district": r[9] or "",
+                "cover": r[10] or "/media/default.jpg",
+                "status": r[11],
+                "type": r[12],
             })
 
         resp_data = {
@@ -760,9 +780,11 @@ def dt_search_zar(request):
     except Exception as e:
         import traceback
         return JsonResponse(sendResponse(request, 7013, {"error": str(e), "trace": traceback.format_exc()}, "search_zar"))
+
     finally:
         if 'cursor' in locals():
             cursor.close()
         if 'myConn' in locals():
             disconnectDB(myConn)
+
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Calculator, TrendingUp, Home, MapPin } from "lucide-react";
+import { Calculator, TrendingUp, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -19,23 +20,11 @@ import {
 } from "@/components/ui/card";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { sendRequest } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/user/";
 const MODEL_API_URL =
   import.meta.env.VITE_MODEL_API_URL || "http://127.0.0.1:8001/predict";
-
-interface Turul {
-  tid: number;
-  tname: string;
-  temoji?: string;
-}
-
-interface Tuluv {
-  tid: number;
-  tname: string;
-}
 
 interface City {
   hid: number;
@@ -52,14 +41,13 @@ const PriceEstimator = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
+  const navigate = useNavigate();
   const [priceRange, setPriceRange] = useState<{
     min: number;
     max: number;
   } | null>(null);
 
   // Dropdown data
-  const [turul, setTurul] = useState<Turul[]>([]);
-  const [tuluv, setTuluv] = useState<Tuluv[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
 
@@ -67,8 +55,7 @@ const PriceEstimator = () => {
   const [formData, setFormData] = useState({
     rooms: "",
     m2: "",
-    type_id: "",
-    status_id: "",
+    segment: "sale" as "sale" | "rent",
     city_id: "",
     district_id: "",
   });
@@ -83,8 +70,6 @@ const PriceEstimator = () => {
       .then((r) => r.json())
       .then((data) => {
         if (data.resultCode === 6003) {
-          setTurul(data.data.turul || []);
-          setTuluv(data.data.tuluv || []);
           setCities(data.data.hot || []);
           setDistricts(data.data.duureg || []);
         }
@@ -93,37 +78,11 @@ const PriceEstimator = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Map status_id to segment (sale/rent)
-  const getSegmentFromStatus = (statusId: string): "sale" | "rent" => {
-    // status_id: 1 = Sale, 2 = Rent (based on common patterns)
-    const status = tuluv.find((t) => t.tid.toString() === statusId);
-    if (status) {
-      const statusName = status.tname.toLowerCase();
-      if (
-        statusName.includes("түрээс") ||
-        statusName.includes("rent") ||
-        statusName.includes("түрээслэх")
-      ) {
-        return "rent";
-      }
-    }
-    return "sale"; // Default to sale
-  };
-
   const handleEstimate = async () => {
     if (!formData.m2 || parseFloat(formData.m2) <= 0) {
       toast({
         title: "Алдаа",
         description: "Талбай (м²) 0-ээс их байх ёстой",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.status_id) {
-      toast({
-        title: "Алдаа",
-        description: "Төлөвийг сонгоно уу",
         variant: "destructive",
       });
       return;
@@ -141,7 +100,6 @@ const PriceEstimator = () => {
 
       const cityName = selectedCity?.hname || "Улаанбаатар";
       const districtName = selectedDistrict?.dname || "Хан-Уул";
-      const segment = getSegmentFromStatus(formData.status_id);
       const roomCount = parseFloat(formData.rooms) || 0;
       const squareM2 = parseFloat(formData.m2);
 
@@ -152,7 +110,7 @@ const PriceEstimator = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          segment: segment,
+          segment: formData.segment,
           room_count: roomCount,
           square_m2: squareM2,
           city: cityName,
@@ -204,7 +162,7 @@ const PriceEstimator = () => {
               <h1 className="text-4xl font-bold">Үнэ тооцоолуур</h1>
             </div>
             <p className="text-muted-foreground text-lg">
-              Машин сургалтын алгоритм ашиглан үл хөдлөх хөрөнгийн үнийг
+              Машин сургалтын алгоритм ашиглан орон сууцны үнийг
               тооцоолох
             </p>
           </div>
@@ -220,47 +178,33 @@ const PriceEstimator = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Үл хөдлөхийн төрөл *</Label>
-                      <Select
-                        value={formData.type_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, type_id: value })
+                  <div className="space-y-2">
+                    <Label htmlFor="segment">Төлөв *</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        type="button"
+                        variant={
+                          formData.segment === "sale" ? "default" : "outline"
+                        }
+                        className="w-full"
+                        onClick={() =>
+                          setFormData({ ...formData, segment: "sale" })
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Төрөл сонгох" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {turul.map((t) => (
-                            <SelectItem key={t.tid} value={t.tid.toString()}>
-                              {t.temoji} {t.tname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Төлөв *</Label>
-                      <Select
-                        value={formData.status_id}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, status_id: value })
+                        🏠 Зарах
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          formData.segment === "rent" ? "default" : "outline"
+                        }
+                        className="w-full"
+                        onClick={() =>
+                          setFormData({ ...formData, segment: "rent" })
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Төлөв сонгох" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tuluv.map((t) => (
-                            <SelectItem key={t.tid} value={t.tid.toString()}>
-                              {t.tname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        🔑 Түрээслэх
+                      </Button>
                     </div>
                   </div>
 
@@ -409,6 +353,15 @@ const PriceEstimator = () => {
                           байж болно. Зөвхөн лавлагааны зориулалттай.
                         </p>
                       </div>
+                      <div className="pt-4">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => navigate("/")}
+                      >
+                        Буцах
+                      </Button>
+                    </div>
                     </div>
                   ) : (
                     <div className="text-center py-8">

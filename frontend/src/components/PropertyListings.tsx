@@ -1,4 +1,3 @@
-// src/components/PropertyListings.tsx
 import { useState, useEffect } from "react";
 import { Grid, List, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,6 @@ const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/user/";
 
 const PropertyListings = () => {
   const { searchParams, lastTrigger } = useSearch();
-
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [properties, setProperties] = useState<FormattedProperty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,25 +71,21 @@ const PropertyListings = () => {
 
         const response = await sendRequest<any>(API_URL, "POST", payload);
 
-        // resultCode 7005 эсвэл 7014 → амжилттай гэж үзнэ
+        // Амжилттай код: 7005 эсвэл 7014
         if (
           (response.resultCode === 7005 || response.resultCode === 7014) &&
           (response.data || response.data?.items)
         ) {
-          // Ямар ч форматтай ирсэн data-г зөв авна (items массив, эсвэл шууд массив)
           const rawItems = isSearchMode
             ? Array.isArray(response.data)
               ? response.data
               : Array.isArray(response.data?.items)
               ? response.data.items
-              : response.data?.items && typeof response.data.items === "object" && response.data.items !== null
-              ? Object.values(response.data.items)
               : []
             : Array.isArray(response.data)
             ? response.data
             : [];
 
-          // Хоосон үр дүн бол
           if (rawItems.length === 0 && page === 1) {
             setProperties([]);
             setHasMore(false);
@@ -100,7 +94,7 @@ const PropertyListings = () => {
           }
 
           const formatted = rawItems.map((item: any): FormattedProperty => {
-            // search_zar-аас ирэх үед (zid, title, price, cover гэх мэт)
+            // search_zar-аас ирэх үед
             if (isSearchMode || item.cover) {
               const priceNum = Number(item.price || item.z_price || 0);
               const status = (searchParams.status || "").toString();
@@ -128,7 +122,7 @@ const PropertyListings = () => {
               };
             }
 
-            // getzar-аас ирэх үед (хуучин бүтэц)
+            // getzar-аас ирэх үед
             const p = item as Zar;
             const status = (p.status_name || "").toLowerCase();
             const isRent = /түрээс|rent/i.test(status);
@@ -164,7 +158,12 @@ const PropertyListings = () => {
           });
 
           setProperties((prev) => (page === 1 ? formatted : [...prev, ...formatted]));
-          setHasMore(rawItems.length >= 9);
+          // Pagination-ийн has_next-ийг backend-аас авна
+          if (isSearchMode && response.data.pagination) {
+            setHasMore(response.data.pagination.has_next);
+          } else {
+            setHasMore(rawItems.length >= 9);
+          }
         } else {
           if (page === 1) {
             setProperties([]);
@@ -185,32 +184,6 @@ const PropertyListings = () => {
   const loadMore = () => {
     if (hasMore && !loading) setPage((p) => p + 1);
   };
-
-  // Эхний хуудас лоад хийж байхад
-  if (loading && page === 1) {
-    return (
-      <section className="py-16">
-        <div className="container mx-auto px-4 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-2 text-muted-foreground">Зар уншиж байна...</p>
-        </div>
-      </section>
-    );
-  }
-
-  // Алдаа
-  if (error && page === 1) {
-    return (
-      <section className="py-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-red-500">{error}</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
-            Дахин оролдох
-          </Button>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section className="py-16 warm-gradient">
@@ -271,6 +244,22 @@ const PropertyListings = () => {
         {!loading && properties.length === 0 && (
           <div className="text-center py-16 text-muted-foreground text-xl">
             Зар олдсонгүй
+          </div>
+        )}
+
+        {loading && page === 1 && (
+          <div className="text-center py-16">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <p className="mt-2 text-muted-foreground">Зар уншиж байна...</p>
+          </div>
+        )}
+
+        {error && page === 1 && (
+          <div className="text-center py-16 text-red-500">
+            {error}
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Дахин оролдох
+            </Button>
           </div>
         )}
       </div>
